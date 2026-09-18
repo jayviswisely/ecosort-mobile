@@ -9,6 +9,8 @@ The app is completely demoable without hardware. It starts with the NCKU Dormito
 - Polished dashboard with animated fill indicators and live-style hardware status
 - Zero-Overflow Autopilot with a Hsinchu city digital twin, two-hour capacity
   forecasting, optimized collection missions, and sensor-verified pickups
+- Real Hsinchu street geography on iOS/Android, an OpenStreetMap web layer, and
+  an explainable six-stage decision pipeline from edge signal to verified pickup
 - Plastic, metal, and general bin detail screens
 - Automatic Normal, Almost Full, Full, and Sensor Offline states
 - Full-bin staff alarm with a repeating two-tone paging sound, native
@@ -54,6 +56,20 @@ npm run check
 The Hsinchu nodes, route savings, and environmental impact values are clearly
 identified in the interface as demo data and estimates.
 
+## Hsinchu map layers
+
+- iOS and Android use `react-native-maps` with real geographic coordinates,
+  selectable custom markers, overflow-risk radii, and optimized route polylines.
+- Web uses OpenStreetMap raster tiles with the required contributor attribution
+  and the same coordinates, state, markers, and route sequence.
+- The proposed demo nodes represent Beimen Market, Big City, Hsinchu Station,
+  NTHU, NYCU, Xiangshan Wetlands, and Nanliao Harbor. They are not presented as
+  existing EcoSort installations.
+
+`react-native-maps` works without extra setup in Expo Go. A standalone Android
+release must configure a Google Maps SDK key through the `react-native-maps`
+config plugin before building for an app store.
+
 ## Architecture
 
 ```text
@@ -69,6 +85,7 @@ app/
 
 src/
   components/              Reusable cards, indicators, badges, demo panel
+    autopilot/              Native/web city maps and explainable AI pipeline
   data/                    Initial demo data factories
   services/edge/           Device transport abstraction and adapters
   store/                   Zustand application state and alert rules

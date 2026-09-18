@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Animated,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +9,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DecisionPipeline } from '@/components/autopilot/DecisionPipeline';
+import HsinchuCityMap from '@/components/autopilot/HsinchuCityMap';
+import type { MapRisk } from '@/components/autopilot/mapTypes';
 import { AUTOPILOT_STATIONS, type AutopilotStation } from '@/data/autopilotData';
 import {
   AUTOPILOT_ROUTE,
@@ -20,7 +21,7 @@ import {
 import { useEcoStore } from '@/store/useEcoStore';
 import { colors, radii, shadows } from '@/theme';
 
-type RiskLevel = 'normal' | 'watch' | 'critical' | 'offline' | 'collected';
+type RiskLevel = MapRisk;
 
 interface StationView extends AutopilotStation {
   currentFill: number;
@@ -179,24 +180,13 @@ export default function CommandScreen() {
             </View>
           </View>
 
-          <View style={styles.mapCanvas}>
-            <MapBackground />
-            {routeActive && <OptimizedPath />}
-
-            {stations.map((station) => (
-              <StationMarker
-                key={station.id}
-                station={station}
-                selected={station.id === selectedStationId}
-                routeNumber={
-                  routeActive
-                    ? AUTOPILOT_ROUTE.findIndex((id) => id === station.id) + 1
-                    : 0
-                }
-                onPress={() => selectStation(station.id)}
-              />
-            ))}
-          </View>
+          <HsinchuCityMap
+            stations={stations}
+            selectedStationId={selectedStationId}
+            routeActive={routeActive}
+            routeStationIds={AUTOPILOT_ROUTE}
+            onSelectStation={selectStation}
+          />
 
           <View style={styles.mapLegend}>
             <LegendDot color={riskMeta.normal.color} label="Normal" />
@@ -207,6 +197,24 @@ export default function CommandScreen() {
         </View>
 
         <StationDetail station={selectedStation} />
+
+        <View style={styles.sectionHeading}>
+          <View>
+            <Text style={styles.sectionEyebrow}>EXPLAINABLE AUTONOMY</Text>
+            <Text style={styles.sectionTitle}>How Autopilot decides</Text>
+          </View>
+          <View style={styles.pipelineVersionBadge}>
+            <Ionicons name="git-network-outline" size={13} color={colors.primary} />
+            <Text style={styles.pipelineVersionText}>PIPELINE V2</Text>
+          </View>
+        </View>
+
+        <DecisionPipeline
+          criticalCount={criticalCount}
+          routeActive={routeActive}
+          completedPickups={completedStationIds.length}
+          edgeOnline={edgeOnline}
+        />
 
         <View style={styles.sectionHeading}>
           <View>
@@ -434,109 +442,6 @@ function ForecastOption({
     <Pressable onPress={onPress} style={[styles.forecastOption, selected && styles.forecastSelected]}>
       <Text style={[styles.forecastText, selected && styles.forecastTextSelected]}>{label}</Text>
     </Pressable>
-  );
-}
-
-function MapBackground() {
-  return (
-    <>
-      <Text style={[styles.districtLabel, { left: '9%', top: '12%' }]}>NORTH</Text>
-      <Text style={[styles.districtLabel, { left: '72%', top: '18%' }]}>EAST</Text>
-      <Text style={[styles.districtLabel, { left: '9%', top: '69%' }]}>XIANGSHAN</Text>
-      <View style={[styles.mapRoadMajor, { left: '-5%', top: '48%', width: '112%', transform: [{ rotate: '-8deg' }] }]} />
-      <View style={[styles.mapRoadMajor, { left: '38%', top: '10%', width: '77%', transform: [{ rotate: '67deg' }] }]} />
-      <View style={[styles.mapRoad, { left: '5%', top: '29%', width: '88%', transform: [{ rotate: '14deg' }] }]} />
-      <View style={[styles.mapRoad, { left: '17%', top: '67%', width: '74%', transform: [{ rotate: '-21deg' }] }]} />
-      <View style={[styles.mapRoad, { left: '5%', top: '61%', width: '58%', transform: [{ rotate: '72deg' }] }]} />
-      <View style={[styles.mapRoad, { left: '55%', top: '47%', width: '46%', transform: [{ rotate: '31deg' }] }]} />
-      <View style={[styles.river, { left: '-8%', top: '79%', width: '116%', transform: [{ rotate: '-5deg' }] }]} />
-      <Text style={styles.riverLabel}>TOUQIAN RIVER</Text>
-      <View style={styles.mapGridVerticalOne} />
-      <View style={styles.mapGridVerticalTwo} />
-      <View style={styles.mapGridHorizontal} />
-    </>
-  );
-}
-
-function OptimizedPath() {
-  return (
-    <View style={[StyleSheet.absoluteFill, styles.nonInteractive]}>
-      <View style={[styles.routePath, { left: '22%', top: '29%', width: '25%', transform: [{ rotate: '30deg' }] }]} />
-      <View style={[styles.routePath, { left: '42%', top: '47%', width: '20%', transform: [{ rotate: '59deg' }] }]} />
-      <View style={[styles.routePath, { left: '53%', top: '48%', width: '29%', transform: [{ rotate: '-43deg' }] }]} />
-    </View>
-  );
-}
-
-function StationMarker({
-  station,
-  selected,
-  routeNumber,
-  onPress,
-}: {
-  station: StationView;
-  selected: boolean;
-  routeNumber: number;
-  onPress: () => void;
-}) {
-  const meta = riskMeta[station.currentRisk];
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${station.name}, ${station.currentFill}% full, ${meta.label}`}
-      onPress={onPress}
-      style={[
-        styles.stationMarker,
-        { left: `${station.x}%`, top: `${station.y}%` },
-        selected && styles.stationMarkerSelected,
-      ]}
-    >
-      {station.currentRisk === 'critical' && <PulseRing color={meta.color} />}
-      <View style={[styles.markerPin, { borderColor: meta.color, backgroundColor: meta.soft }]}>
-        {routeNumber > 0 ? (
-          <Text style={[styles.markerRouteNumber, { color: meta.color }]}>{routeNumber}</Text>
-        ) : (
-          <Ionicons name={meta.icon} size={15} color={meta.color} />
-        )}
-      </View>
-      <View style={[styles.markerLabel, selected && styles.markerLabelSelected]}>
-        <Text numberOfLines={1} style={[styles.markerLabelText, selected && styles.markerLabelTextSelected]}>
-          {station.shortName}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function PulseRing({ color }: { color: string }) {
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.timing(pulse, {
-        toValue: 1,
-        duration: 1600,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulse]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.pulseRing,
-        {
-          borderColor: color,
-          opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] }),
-          transform: [
-            { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.8] }) },
-          ],
-        },
-      ]}
-    />
   );
 }
 
@@ -891,6 +796,8 @@ const styles = StyleSheet.create({
   stationStatDivider: { width: 1, marginHorizontal: 8, backgroundColor: colors.divider },
   routeReadyBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.primarySoft },
   routeReadyText: { color: colors.primary, fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  pipelineVersionBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.primarySoft },
+  pipelineVersionText: { color: colors.primary, fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   missionCard: { padding: 18, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   missionIconWrap: { width: 49, height: 49, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },
   missionTitle: { color: colors.text, fontSize: 19, fontWeight: '900', letterSpacing: -0.35, marginTop: 14 },

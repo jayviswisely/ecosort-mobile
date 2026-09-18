@@ -5,6 +5,8 @@ export interface AutopilotStation {
   district: 'North' | 'East' | 'Xiangshan';
   x: number;
   y: number;
+  latitude: number;
+  longitude: number;
   fillPercent: number;
   projectedFillPercent: number;
   predictedFullMinutes: number | null;
@@ -17,11 +19,13 @@ export interface AutopilotStation {
 export const AUTOPILOT_STATIONS: AutopilotStation[] = [
   {
     id: 'north-loop',
-    name: 'North Loop Market',
-    shortName: 'North Loop',
+    name: 'Beimen Market Node',
+    shortName: 'Beimen',
     district: 'North',
     x: 22,
     y: 24,
+    latitude: 24.80774,
+    longitude: 120.96536,
     fillPercent: 96,
     projectedFillPercent: 100,
     predictedFullMinutes: 12,
@@ -36,6 +40,8 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
     district: 'North',
     x: 43,
     y: 37,
+    latitude: 24.80991,
+    longitude: 120.97465,
     fillPercent: 78,
     projectedFillPercent: 94,
     predictedFullMinutes: 68,
@@ -45,11 +51,13 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
   },
   {
     id: 'edge-lab',
-    name: 'Hsinchu Edge Lab',
-    shortName: 'Edge Lab',
+    name: 'Hsinchu Station Edge Lab',
+    shortName: 'Station',
     district: 'East',
     x: 54,
     y: 58,
+    latitude: 24.80164,
+    longitude: 120.97159,
     fillPercent: 82,
     projectedFillPercent: 96,
     predictedFullMinutes: 47,
@@ -65,6 +73,8 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
     district: 'East',
     x: 76,
     y: 34,
+    latitude: 24.79616,
+    longitude: 120.99671,
     fillPercent: 86,
     projectedFillPercent: 99,
     predictedFullMinutes: 52,
@@ -79,6 +89,8 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
     district: 'East',
     x: 84,
     y: 59,
+    latitude: 24.78684,
+    longitude: 120.99693,
     fillPercent: 63,
     projectedFillPercent: 73,
     predictedFullMinutes: 194,
@@ -88,11 +100,13 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
   },
   {
     id: 'xiangshan',
-    name: 'Xiangshan Eco Hub',
-    shortName: 'Xiangshan',
+    name: 'Xiangshan Wetlands Hub',
+    shortName: 'Wetlands',
     district: 'Xiangshan',
     x: 24,
     y: 78,
+    latitude: 24.76388,
+    longitude: 120.91494,
     fillPercent: 44,
     projectedFillPercent: 55,
     predictedFullMinutes: 286,
@@ -107,6 +121,8 @@ export const AUTOPILOT_STATIONS: AutopilotStation[] = [
     district: 'North',
     x: 13,
     y: 48,
+    latitude: 24.84864,
+    longitude: 120.92892,
     fillPercent: 0,
     projectedFillPercent: 0,
     predictedFullMinutes: null,
