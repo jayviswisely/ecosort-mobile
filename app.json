@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "EcoSort",
+    "slug": "ecosort-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ecosort",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-router"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "edu.ncku.ecosort"
+    },
+    "android": {
+      "package": "edu.ncku.ecosort",
+      "adaptiveIcon": {
+        "backgroundColor": "#E9F2EC"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
