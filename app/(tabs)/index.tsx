@@ -134,11 +134,11 @@ export default function CommandScreen() {
           <View style={styles.heroTopRow}>
             <View style={styles.autopilotBadge}>
               <Ionicons name="sparkles" size={13} color="#A7F36B" />
-              <Text style={styles.autopilotBadgeText}>PREDICTIVE AUTOPILOT</Text>
+              <Text style={styles.autopilotBadgeText}>PREDICTIVE AUTOPILOT · DEMO</Text>
             </View>
             <View style={styles.liveBadge}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>EDGE LIVE</Text>
+              <Text style={styles.liveText}>DEMO NETWORK</Text>
             </View>
           </View>
 
@@ -391,7 +391,7 @@ function CommandHeader() {
         </View>
         <View>
           <Text style={styles.appName}>EcoSort</Text>
-          <Text style={styles.appSubtitle}>Zero-Overflow Command</Text>
+          <Text style={styles.appSubtitle}>Zero-Overflow Demo</Text>
         </View>
       </View>
       <View style={styles.profileBadge}>

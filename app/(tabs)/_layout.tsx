@@ -11,7 +11,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      initialRouteName="index"
+      initialRouteName="station"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -33,24 +33,24 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
+        name="station"
+        options={{
+          title: 'Station',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
-          title: 'Autopilot',
+          title: 'Autopilot Demo',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'navigate' : 'navigate-outline'}
               size={size}
               color={color}
             />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="station"
-        options={{
-          title: 'Station',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={size} color={color} />
           ),
         }}
       />
