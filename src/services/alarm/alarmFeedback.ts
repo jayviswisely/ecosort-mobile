@@ -1,4 +1,4 @@
-import { Vibration } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import {
   createAudioPlayer,
   setAudioModeAsync,
@@ -33,7 +33,10 @@ async function configureAudio(): Promise<void> {
   audioConfigured = true;
 }
 
-/** Starts a repeating, in-app paging alarm plus strong device haptics. */
+const androidAlarmPattern = [0, 700, 250, 700, 250, 1_100];
+const iosAlarmPattern = [0, 700, 250, 700, 250, 1_100];
+
+/** Starts a repeating, in-app paging alarm plus strong device vibration. */
 export async function triggerAlarmFeedback(
   _binName: string,
   _fillPercent: number,
@@ -55,16 +58,25 @@ export async function triggerAlarmFeedback(
 
   if (requestId !== alarmRequestId) return;
 
-  try {
-    Vibration.vibrate([0, 400, 180, 400, 180, 650], true);
-  } catch (error) {
-    console.warn('Unable to start the EcoSort alarm vibration.', error);
-  }
-
+  // Let the short native haptic finish before starting the repeating vibration.
+  // Starting haptics after Vibration.vibrate can replace the active Android
+  // vibration request, which made the repeating pattern appear to do nothing.
   try {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   } catch (error) {
     console.warn('Unable to start EcoSort haptic feedback.', error);
+  }
+
+  if (requestId !== alarmRequestId) return;
+
+  try {
+    Vibration.cancel();
+    Vibration.vibrate(
+      Platform.OS === 'ios' ? iosAlarmPattern : androidAlarmPattern,
+      true,
+    );
+  } catch (error) {
+    console.warn('Unable to start the EcoSort alarm vibration.', error);
   }
 }
 

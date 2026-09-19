@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { DetectionBanner, FullBinAlarm } from '@/components';
+import { prepareBackgroundAlertsAsync } from '@/services/alarm/backgroundAlerts';
 import { useEcoStore } from '@/store/useEcoStore';
 import { colors } from '@/theme';
 
@@ -42,6 +43,10 @@ export default function RootLayout() {
       dispose();
     };
   }, [dispose, initialize]);
+
+  useEffect(() => {
+    void prepareBackgroundAlertsAsync();
+  }, []);
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>

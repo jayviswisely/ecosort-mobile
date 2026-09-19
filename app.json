@@ -6,13 +6,24 @@
     "orientation": "portrait",
     "scheme": "ecosort",
     "userInterfaceStyle": "light",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#D84A4A",
+          "defaultChannel": "ecosort-full-bin",
+          "sounds": ["./assets/full-bin-alarm.wav"]
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "edu.ncku.ecosort"
     },
     "android": {
       "package": "edu.ncku.ecosort",
+      "permissions": ["VIBRATE", "POST_NOTIFICATIONS"],
       "adaptiveIcon": {
         "backgroundColor": "#E9F2EC"
       }

@@ -1,8 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Href, useRouter } from 'expo-router';
 import {
   AccessibilityInfo,
+  AppState,
+  type AppStateStatus,
   Modal,
   Pressable,
   StyleSheet,
@@ -15,6 +17,10 @@ import {
   stopAlarmFeedback,
   triggerAlarmFeedback,
 } from '@/services/alarm/alarmFeedback';
+import {
+  dismissFullBinNotificationAsync,
+  showFullBinNotificationAsync,
+} from '@/services/alarm/backgroundAlerts';
 import { useEcoStore } from '@/store/useEcoStore';
 import { colors, radii, shadows } from '@/theme';
 
@@ -28,6 +34,8 @@ export function FullBinAlarm() {
   const alerts = useEcoStore((state) => state.alerts);
   const bins = useEcoStore((state) => state.bins);
   const acknowledgeAlert = useEcoStore((state) => state.acknowledgeAlert);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const previousAlertId = useRef<string | null>(null);
 
   const alert = useMemo(
     () =>
@@ -42,8 +50,28 @@ export function FullBinAlarm() {
   );
 
   useEffect(() => {
+    const subscription = AppState.addEventListener('change', setAppState);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const previous = previousAlertId.current;
+    if (previous && previous !== alert?.id) {
+      void dismissFullBinNotificationAsync(previous);
+    }
+    previousAlertId.current = alert?.id ?? null;
+  }, [alert?.id]);
+
+  useEffect(() => {
     if (!alert || !bin) return;
 
+    if (appState !== 'active') {
+      stopAlarmFeedback();
+      void showFullBinNotificationAsync(alert.id, bin.name, bin.fillPercent);
+      return;
+    }
+
+    void dismissFullBinNotificationAsync(alert.id);
     void triggerAlarmFeedback(bin.name, bin.fillPercent);
     try {
       AccessibilityInfo.announceForAccessibility(
@@ -54,11 +82,15 @@ export function FullBinAlarm() {
     }
 
     return stopAlarmFeedback;
-  }, [alert?.id]);
+  }, [alert?.id, appState, bin?.fillPercent, bin?.name]);
 
   if (!alert || !bin) return null;
 
-  const acknowledge = () => acknowledgeAlert(alert.id);
+  const acknowledge = () => {
+    stopAlarmFeedback();
+    void dismissFullBinNotificationAsync(alert.id);
+    acknowledgeAlert(alert.id);
+  };
   const openResponse = () => {
     acknowledge();
     router.push(`/bin/${bin.id}` as Href);
