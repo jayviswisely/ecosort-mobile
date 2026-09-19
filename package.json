@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "simulator": "node scripts/edge-simulator.mjs",
+    "simulator:test": "node --test scripts/edge-simulator.test.mjs",
     "typecheck": "tsc --noEmit",
     "check": "expo-doctor && tsc --noEmit"
   },

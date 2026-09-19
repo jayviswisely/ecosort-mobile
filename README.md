@@ -150,6 +150,40 @@ Replace the IP address with the address printed by `hostname -I` on the board.
 The phone and board must be on the same LAN. Reload Expo after changing the
 environment file. Use `EXPO_PUBLIC_EDGE_MODE=demo` to return to the simulator.
 
+## Laptop edge simulator
+
+When the FRDM board is occupied, run the board-compatible API simulator on the
+development laptop:
+
+```bash
+npm run simulator
+```
+
+Open `http://localhost:8080` for its control panel. It can change the monitored
+bin to 20%, 50%, 80%, or 95%, disconnect the level sensor, emit AI detections
+for all three routes, reset the scenario, and exercise **Mark as Emptied** from
+the mobile app. The default configuration matches the one-sensor prototype:
+the Plastic bin has a level sensor, while Plastic, Metal, and General all accept
+AI detection events.
+
+The command prints one or more LAN addresses. Put the phone and laptop on the
+same network, allow Node.js through the private-network firewall if prompted,
+and configure `.env.local` with the printed address:
+
+```env
+EXPO_PUBLIC_EDGE_MODE=live
+EXPO_PUBLIC_EDGE_URL=http://LAPTOP_LAN_IP:8080
+```
+
+Restart Expo after changing the environment. To simulate the sensor in another
+bin or use a different empty depth:
+
+```bash
+npm run simulator -- --sensor-bin metal --empty-depth-cm 35
+```
+
+Run the simulator contract tests with `npm run simulator:test`.
+
 The proposed REST contract is:
 
 ### `GET /api/status`
