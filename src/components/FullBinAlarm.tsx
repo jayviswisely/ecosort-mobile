@@ -45,9 +45,13 @@ export function FullBinAlarm() {
     if (!alert || !bin) return;
 
     void triggerAlarmFeedback(bin.name, bin.fillPercent);
-    void AccessibilityInfo.announceForAccessibility(
-      `Urgent EcoSort alarm. ${bin.name} is ${bin.fillPercent} percent full and needs collection.`,
-    );
+    try {
+      AccessibilityInfo.announceForAccessibility(
+        `Urgent EcoSort alarm. ${bin.name} is ${bin.fillPercent} percent full and needs collection.`,
+      );
+    } catch (error) {
+      console.warn('Unable to announce the EcoSort alarm.', error);
+    }
 
     return stopAlarmFeedback;
   }, [alert?.id]);
