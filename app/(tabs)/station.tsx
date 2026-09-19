@@ -18,10 +18,13 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [demoVisible, setDemoVisible] = useState(false);
   const station = useEcoStore((state) => state.station);
+  const edgeMode = useEcoStore((state) => state.edgeMode);
+  const edgeConnected = useEcoStore((state) => state.edgeConnected);
   const bins = useEcoStore((state) => state.bins);
   const events = useEcoStore((state) => state.events);
   const attentionCount = useAttentionCount();
-  const systemOnline = bins.every((bin) => bin.status !== 'offline');
+  const liveMode = edgeMode === 'live';
+  const sensorCount = bins.filter((bin) => bin.status !== 'offline').length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -39,27 +42,48 @@ export default function DashboardScreen() {
               <Text style={styles.subtitle}>Smart Waste Management</Text>
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open demo controls"
-            onPress={() => setDemoVisible(true)}
-            style={({ pressed }) => [styles.demoButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="options-outline" size={19} color={colors.primary} />
-            <Text style={styles.demoButtonText}>Demo</Text>
-          </Pressable>
+          {!liveMode && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open demo controls"
+              onPress={() => setDemoVisible(true)}
+              style={({ pressed }) => [styles.demoButton, pressed && styles.pressed]}
+            >
+              <Ionicons name="options-outline" size={19} color={colors.primary} />
+              <Text style={styles.demoButtonText}>Demo</Text>
+            </Pressable>
+          )}
         </View>
 
-        <SystemStatus station={station} online={systemOnline} />
+        <SystemStatus station={station} online={edgeConnected} />
 
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionTitle}>Bin status</Text>
-            <Text style={styles.sectionSubtitle}>Live depth-sensor readings</Text>
+            <Text style={styles.sectionSubtitle}>
+              {liveMode ? 'Live depth-sensor readings' : 'Simulated sensor readings'}
+            </Text>
           </View>
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+          <View
+            style={[
+              styles.liveBadge,
+              !edgeConnected && { backgroundColor: colors.dangerSoft },
+            ]}
+          >
+            <View
+              style={[
+                styles.liveDot,
+                !edgeConnected && { backgroundColor: colors.danger },
+              ]}
+            />
+            <Text
+              style={[
+                styles.liveText,
+                !edgeConnected && { color: colors.danger },
+              ]}
+            >
+              {edgeConnected ? (liveMode ? 'LIVE' : 'DEMO') : 'OFFLINE'}
+            </Text>
           </View>
         </View>
 
@@ -74,7 +98,10 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.overviewCard}>
-          <OverviewMetric value={String(bins.length)} label="Bins monitored" />
+          <OverviewMetric
+            value={String(liveMode ? sensorCount : bins.length)}
+            label="Bins monitored"
+          />
           <View style={styles.overviewDivider} />
           <OverviewMetric
             value={String(attentionCount)}
@@ -83,9 +110,9 @@ export default function DashboardScreen() {
           />
           <View style={styles.overviewDivider} />
           <OverviewMetric
-            value={systemOnline ? 'Online' : 'Issue'}
+            value={edgeConnected ? 'Online' : 'Issue'}
             label="System status"
-            color={systemOnline ? colors.normal : colors.danger}
+            color={edgeConnected ? colors.normal : colors.danger}
             compact
           />
         </View>
@@ -108,7 +135,11 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.edgeSpacing}>
-          <EdgeSystemCard />
+          <EdgeSystemCard
+            connected={edgeConnected}
+            live={liveMode}
+            sensorCount={sensorCount}
+          />
         </View>
       </ScrollView>
 

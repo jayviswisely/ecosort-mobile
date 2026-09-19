@@ -2,8 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { createInitialAlerts } from '@/data/initialData';
-import { simulatedEdgeDataSource } from '@/services/edge';
+import {
+  createInitialAlerts,
+  createInitialBins,
+} from '@/data/initialData';
+import {
+  edgeDataSource,
+  edgeMode,
+  simulatedEdgeDataSource,
+} from '@/services/edge';
 import type {
   AlertType,
   BinAlert,
@@ -17,6 +24,8 @@ import { getStatusLabel } from '@/utils/bin';
 
 interface EcoState {
   station: string;
+  edgeMode: 'demo' | 'live';
+  edgeConnected: boolean;
   bins: SmartBin[];
   events: DisposalEvent[];
   alerts: BinAlert[];
@@ -77,8 +86,16 @@ export const useEcoStore = create<EcoState>()(
   persist(
     (set, get) => {
       const handleEdgeUpdate = (update: EdgeUpdate) => {
+        if (update.type === 'connection_changed') {
+          set({ edgeConnected: update.online });
+          return;
+        }
+
         if (update.type === 'bin_updated') {
-          set((state) => applyBinUpdate(state.bins, state.alerts, update.bin));
+          set((state) => ({
+            ...applyBinUpdate(state.bins, state.alerts, update.bin),
+            edgeConnected: true,
+          }));
           return;
         }
 
@@ -92,6 +109,7 @@ export const useEcoStore = create<EcoState>()(
 
             return {
               ...updated,
+              edgeConnected: true,
               events: [update.event, ...state.events].slice(0, 50),
               notice: {
                 id: update.event.id,
@@ -109,6 +127,7 @@ export const useEcoStore = create<EcoState>()(
           bins: update.bins,
           events: update.events,
           alerts: createInitialAlerts(),
+          edgeConnected: true,
           notice: {
             id: `notice-reset-${Date.now()}`,
             title: 'Demo reset',
@@ -119,6 +138,8 @@ export const useEcoStore = create<EcoState>()(
 
       return {
         station: 'NCKU Dormitory A',
+        edgeMode,
+        edgeConnected: edgeMode === 'demo',
         bins: [],
         events: [],
         alerts: [],
@@ -129,19 +150,46 @@ export const useEcoStore = create<EcoState>()(
           if (get().isReady) return;
 
           let { bins, events, alerts } = get();
-          if (bins.length === 0 || events.length === 0) {
+          if (edgeMode === 'live') {
+            try {
+              bins = await edgeDataSource.getBins();
+              try {
+                events = await edgeDataSource.getRecentEvents();
+              } catch {
+                events = [];
+              }
+              if (alerts.length === 0) {
+                alerts = bins
+                  .filter(
+                    (bin) =>
+                      bin.status === 'almost_full' || bin.status === 'full',
+                  )
+                  .map((bin) => buildAlert(bin, bin.status as AlertType));
+              }
+              set({ bins, events, alerts, edgeConnected: true });
+            } catch {
+              if (bins.length === 0) {
+                bins = createInitialBins().map((bin) => ({
+                  ...bin,
+                  status: 'offline' as const,
+                }));
+              }
+              if (events.length === 0) events = [];
+              set({ bins, events, alerts, edgeConnected: false });
+            }
+          } else if (bins.length === 0 || events.length === 0) {
             [bins, events] = await Promise.all([
-              simulatedEdgeDataSource.getBins(),
-              simulatedEdgeDataSource.getRecentEvents(),
+              edgeDataSource.getBins(),
+              edgeDataSource.getRecentEvents(),
             ]);
             if (alerts.length === 0) alerts = createInitialAlerts();
-            set({ bins, events, alerts });
+            set({ bins, events, alerts, edgeConnected: true });
           } else {
             simulatedEdgeDataSource.seed(bins, events);
           }
 
           unsubscribeFromEdge ??=
-            simulatedEdgeDataSource.subscribeToUpdates(handleEdgeUpdate);
+            edgeDataSource.subscribeToUpdates(handleEdgeUpdate);
           set({ isReady: true });
         },
 
@@ -151,15 +199,26 @@ export const useEcoStore = create<EcoState>()(
         },
 
         setDemoFill: (category, fillPercent) =>
-          simulatedEdgeDataSource.setFillLevel(category, fillPercent),
+          edgeMode === 'demo'
+            ? simulatedEdgeDataSource.setFillLevel(category, fillPercent)
+            : undefined,
 
         simulateDisposal: (detectedObject) =>
-          simulatedEdgeDataSource.simulateDisposal(detectedObject),
+          edgeMode === 'demo'
+            ? simulatedEdgeDataSource.simulateDisposal(detectedObject)
+            : undefined,
 
         simulateOffline: (category) =>
-          simulatedEdgeDataSource.setSensorOffline(category),
+          edgeMode === 'demo'
+            ? simulatedEdgeDataSource.setSensorOffline(category)
+            : undefined,
 
-        markEmptied: (category) => simulatedEdgeDataSource.markEmptied(category),
+        markEmptied: (category) => {
+          const request = edgeDataSource.markEmptied?.(category);
+          if (request) {
+            void Promise.resolve(request).catch(() => set({ edgeConnected: false }));
+          }
+        },
 
         acknowledgeAlert: (alertId) =>
           set((state) => ({
@@ -175,11 +234,13 @@ export const useEcoStore = create<EcoState>()(
 
         clearNotice: () => set({ notice: null }),
 
-        resetDemo: () => simulatedEdgeDataSource.reset(),
+        resetDemo: () => {
+          if (edgeMode === 'demo') simulatedEdgeDataSource.reset();
+        },
       };
     },
     {
-      name: 'ecosort-state-v1',
+      name: edgeMode === 'live' ? 'ecosort-state-live-v1' : 'ecosort-state-v1',
       storage: createJSONStorage(() => AsyncStorage),
       skipHydration: true,
       partialize: (state) => ({

@@ -38,7 +38,8 @@ export interface BinAlert {
 export type EdgeUpdate =
   | { type: 'bin_updated'; bin: SmartBin }
   | { type: 'event_added'; event: DisposalEvent; bin?: SmartBin }
-  | { type: 'reset'; bins: SmartBin[]; events: DisposalEvent[] };
+  | { type: 'reset'; bins: SmartBin[]; events: DisposalEvent[] }
+  | { type: 'connection_changed'; online: boolean };
 
 export interface DetectionNotice {
   id: string;

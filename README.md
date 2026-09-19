@@ -93,7 +93,7 @@ src/
   utils/                   Fill calculation, status, and date helpers
 ```
 
-The UI reads from `useEcoStore`; it does not own or hard-code simulated readings. The store subscribes to an `EdgeDataSource`. `SimulatedEdgeDataSource` is used today and emits the same domain updates a future network adapter would emit. This keeps sensor transport, business rules, and presentation separate.
+The UI reads from `useEcoStore`; it does not own or hard-code sensor readings. The store subscribes to an `EdgeDataSource`: demo mode uses `SimulatedEdgeDataSource`, while live mode uses `HttpEdgeDataSource` to poll the board. Both emit the same domain updates, keeping sensor transport, business rules, and presentation separate.
 
 ## Simulated sensor data
 
@@ -134,7 +134,21 @@ Example: for an empty-bin depth of 40 cm and a current distance of 10 cm:
 
 ## Connecting the FRDM-i.MX93
 
-Implement the methods in `src/services/edge/HttpEdgeDataSource.ts`, then replace the active source imported by the store. No screen or visual component needs to change.
+The live adapter is implemented. It polls the board every two seconds, maps the
+board's snake-case JSON into the app model, deduplicates AI events, reports a
+lost connection after three failed polls, and sends the **Mark as Emptied**
+action back to the board.
+
+Copy `.env.example` to `.env.local` and select live mode:
+
+```env
+EXPO_PUBLIC_EDGE_MODE=live
+EXPO_PUBLIC_EDGE_URL=http://192.168.1.50:8080
+```
+
+Replace the IP address with the address printed by `hostname -I` on the board.
+The phone and board must be on the same LAN. Reload Expo after changing the
+environment file. Use `EXPO_PUBLIC_EDGE_MODE=demo` to return to the simulator.
 
 The proposed REST contract is:
 
@@ -180,6 +194,15 @@ The proposed REST contract is:
 ```
 
 For a first hardware integration, `subscribeToUpdates` can poll these endpoints every few seconds. It can later switch to WebSocket, server-sent events, or an MQTT-backed gateway while preserving the `EdgeDataSource` interface.
+
+The board also accepts:
+
+```text
+POST /api/bins/{plastic|metal|general}/emptied
+```
+
+The NXP-side implementation and launch instructions live in the companion
+`indobantaimeichu` repository.
 
 ## Scope
 

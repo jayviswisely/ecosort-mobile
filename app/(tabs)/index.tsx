@@ -124,7 +124,6 @@ export default function CommandScreen() {
   const routeComplete = completedStationIds.length === AUTOPILOT_ROUTE.length;
   const nextStopId = AUTOPILOT_ROUTE.find((id) => !completedStationIds.includes(id));
   const nextStop = stations.find((station) => station.id === nextStopId);
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -180,7 +179,6 @@ export default function CommandScreen() {
               <Ionicons name="navigate" size={16} color="#A7F36B" />
             </View>
           </View>
-
           <HsinchuCityMap
             stations={stations}
             selectedStationId={selectedStationId}
@@ -216,7 +214,6 @@ export default function CommandScreen() {
           completedPickups={completedStationIds.length}
           edgeOnline={edgeOnline}
         />
-
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>CLOSED-LOOP RESPONSE</Text>

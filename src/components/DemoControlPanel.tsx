@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,6 +32,7 @@ const objects = [
 
 export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
   const [testAlarmPlaying, setTestAlarmPlaying] = useState(false);
+  const pendingFullUpdate = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setDemoFill = useEcoStore((state) => state.setDemoFill);
   const simulateDisposal = useEcoStore((state) => state.simulateDisposal);
   const simulateOffline = useEcoStore((state) => state.simulateOffline);
@@ -44,7 +45,32 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
     }
   }, [visible]);
 
-  useEffect(() => () => stopAlarmFeedback(), []);
+  useEffect(
+    () => () => {
+      if (pendingFullUpdate.current) clearTimeout(pendingFullUpdate.current);
+      stopAlarmFeedback();
+    },
+    [],
+  );
+
+  const selectFillLevel = (category: BinCategory, level: number) => {
+    if (level < 90) {
+      setDemoFill(category, level);
+      return;
+    }
+
+    // A full level opens the interruptive alarm modal. Dismiss this native
+    // modal first; presenting two native modals during the same transition can
+    // terminate the screen on Android and fail presentation on iOS.
+    stopAlarmFeedback();
+    setTestAlarmPlaying(false);
+    onClose();
+    if (pendingFullUpdate.current) clearTimeout(pendingFullUpdate.current);
+    pendingFullUpdate.current = setTimeout(() => {
+      pendingFullUpdate.current = null;
+      setDemoFill(category, level);
+    }, 400);
+  };
 
   const toggleTestAlarm = () => {
     if (testAlarmPlaying) {
@@ -164,7 +190,7 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
                     <Pressable
                       key={level}
                       accessibilityRole="button"
-                      onPress={() => setDemoFill(category, level)}
+                      onPress={() => selectFillLevel(category, level)}
                       style={({ pressed }) => [styles.levelButton, pressed && styles.pressed]}
                     >
                       <Text style={styles.levelText}>{level}%</Text>
