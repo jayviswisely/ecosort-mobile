@@ -38,3 +38,11 @@ export const shadows = {
     elevation: 2,
   },
 } as const;
+
+export const fonts = {
+  regular: 'Manrope_400Regular',
+  medium: 'Manrope_500Medium',
+  semibold: 'Manrope_600SemiBold',
+  bold: 'Manrope_700Bold',
+  extraBold: 'Manrope_800ExtraBold',
+} as const;

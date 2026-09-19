@@ -7,6 +7,10 @@ The app is completely demoable without hardware. It starts with the NCKU Dormito
 ## Features
 
 - Polished dashboard with animated fill indicators and live-style hardware status
+- Zero-Overflow Autopilot with a Hsinchu city digital twin, two-hour capacity
+  forecasting, optimized collection missions, and sensor-verified pickups
+- Real Hsinchu street geography on iOS/Android, an OpenStreetMap web layer, and
+  an explainable six-stage decision pipeline from edge signal to verified pickup
 - Plastic, metal, and general bin detail screens
 - Automatic Normal, Almost Full, Full, and Sensor Offline states
 - Full-bin staff alarm with a repeating two-tone paging sound, native
@@ -38,13 +42,33 @@ npm run check
 
 ## Demo flow
 
-1. Open the Dashboard and point out the three live fill readings.
-2. Tap **Demo** in the top-right.
-3. Set a bin to 80% to create an **Almost Full** alert.
-4. Set it to 95% to create a **Full** alert.
-5. Simulate a PET Bottle or Aluminum Can and show the detection banner and activity log.
-6. Open a bin card, review its sensor data, and tap **Mark as Emptied**.
-7. Use **Reset Demo** to restore the starting state.
+1. Open **Autopilot** and switch the Hsinchu command map from **Now** to **+2H**.
+2. Show how the forecast identifies four overflow risks before they occur.
+3. Tap **Generate smart route** to create the prioritized collection mission.
+4. Verify each pickup to simulate the depth sensor returning to empty. Watch the
+   station, mission progress, and impact estimates update after every stop.
+5. Finish the route and show the closed-loop completion state: zero predicted
+   overflows and four sensor-verified pickups.
+6. Open **Station**, tap **Demo**, and simulate a PET Bottle or Aluminum Can to
+   show the NXP edge-classification banner and activity log.
+7. Use **Reset Demo** to restore the station data.
+
+The Hsinchu nodes, route savings, and environmental impact values are clearly
+identified in the interface as demo data and estimates.
+
+## Hsinchu map layers
+
+- iOS and Android use `react-native-maps` with real geographic coordinates,
+  selectable custom markers, overflow-risk radii, and optimized route polylines.
+- Web uses OpenStreetMap raster tiles with the required contributor attribution
+  and the same coordinates, state, markers, and route sequence.
+- The proposed demo nodes represent Beimen Market, Big City, Hsinchu Station,
+  NTHU, NYCU, Xiangshan Wetlands, and Nanliao Harbor. They are not presented as
+  existing EcoSort installations.
+
+`react-native-maps` works without extra setup in Expo Go. A standalone Android
+release must configure a Google Maps SDK key through the `react-native-maps`
+config plugin before building for an app store.
 
 ## Architecture
 
@@ -52,14 +76,16 @@ npm run check
 app/
   _layout.tsx              App startup, persistence hydration, root stack
   (tabs)/
-    _layout.tsx            Dashboard / Alerts bottom tabs
-    index.tsx              Dashboard
+    _layout.tsx            Autopilot / Station / Alerts bottom tabs
+    index.tsx              Zero-Overflow Autopilot command map
+    station.tsx            Live station dashboard
     alerts.tsx             Alert inbox
   bin/
     [id].tsx               Dynamic bin detail route
 
 src/
   components/              Reusable cards, indicators, badges, demo panel
+    autopilot/              Native/web city maps and explainable AI pipeline
   data/                    Initial demo data factories
   services/edge/           Device transport abstraction and adapters
   store/                   Zustand application state and alert rules

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 import { useEcoStore } from '@/store/useEcoStore';
-import { colors } from '@/theme';
+import { colors, fonts } from '@/theme';
 
 export default function TabsLayout() {
   const unacknowledged = useEcoStore(
@@ -11,11 +11,13 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarLabelStyle: {
+          fontFamily: fonts.bold,
           fontSize: 11,
           fontWeight: '700',
           marginTop: 1,
@@ -27,12 +29,26 @@ export default function TabsLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: 'Autopilot',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'navigate' : 'navigate-outline'}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="station"
+        options={{
+          title: 'Station',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={size} color={color} />
           ),
