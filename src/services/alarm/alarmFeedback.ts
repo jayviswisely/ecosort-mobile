@@ -27,8 +27,8 @@ async function configureAudio(): Promise<void> {
 
   await setAudioModeAsync({
     playsInSilentMode: true,
-    shouldPlayInBackground: false,
-    interruptionMode: 'duckOthers',
+    shouldPlayInBackground: true,
+    interruptionMode: 'doNotMix',
   });
   audioConfigured = true;
 }
@@ -38,8 +38,8 @@ const iosAlarmPattern = [0, 700, 250, 700, 250, 1_100];
 
 /** Starts a repeating, in-app paging alarm plus strong device vibration. */
 export async function triggerAlarmFeedback(
-  _binName: string,
-  _fillPercent: number,
+  binName: string,
+  fillPercent: number,
 ): Promise<void> {
   const requestId = ++alarmRequestId;
 
@@ -51,6 +51,26 @@ export async function triggerAlarmFeedback(
     const player = getAlarmPlayer();
     await player.seekTo(0);
     if (requestId !== alarmRequestId) return;
+    if (Platform.OS === 'android') {
+      try {
+        player.setActiveForLockScreen(
+          true,
+          {
+            title: `${binName} is full`,
+            artist: `EcoSort collection alarm • ${fillPercent}%`,
+          },
+          {
+            isLiveStream: true,
+            showSeekBackward: false,
+            showSeekForward: false,
+          },
+        );
+      } catch (error) {
+        // Expo Go may not contain the manifest service used by lock-screen
+        // controls. Playback still works without it for the fallback period.
+        console.warn('Unable to enable EcoSort lock-screen controls.', error);
+      }
+    }
     player.play();
   } catch (error) {
     console.warn('Unable to start the EcoSort alarm sound.', error);
@@ -88,6 +108,13 @@ export function stopAlarmFeedback(): void {
   try {
     if (alarmPlayer) {
       alarmPlayer.pause();
+      if (Platform.OS === 'android') {
+        try {
+          alarmPlayer.setActiveForLockScreen(false);
+        } catch (error) {
+          console.warn('Unable to clear EcoSort lock-screen controls.', error);
+        }
+      }
       void alarmPlayer.seekTo(0).catch((error) => {
         console.warn('Unable to rewind the EcoSort alarm sound.', error);
       });

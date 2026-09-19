@@ -9,6 +9,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false,
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#D84A4A",

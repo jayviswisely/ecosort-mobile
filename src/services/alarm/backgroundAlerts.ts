@@ -92,16 +92,17 @@ export async function showFullBinNotificationAsync(
   alertId: string,
   binName: string,
   fillPercent: number,
-): Promise<void> {
+): Promise<boolean> {
   const Notifications = await getNotificationsAsync();
-  if (!Notifications || deliveredAlertIds.has(alertId)) return;
+  if (!Notifications) return false;
+  if (deliveredAlertIds.has(alertId)) return true;
   deliveredAlertIds.add(alertId);
 
   try {
     const permitted = await prepareBackgroundAlertsAsync();
     if (!permitted) {
       deliveredAlertIds.delete(alertId);
-      return;
+      return false;
     }
 
     await Notifications.scheduleNotificationAsync({
@@ -122,9 +123,11 @@ export async function showFullBinNotificationAsync(
           ? { channelId: fullBinChannelId }
           : null,
     });
+    return true;
   } catch (error) {
     deliveredAlertIds.delete(alertId);
     console.warn('Unable to show the EcoSort background alarm.', error);
+    return false;
   }
 }
 

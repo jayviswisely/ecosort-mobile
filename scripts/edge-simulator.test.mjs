@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 
 import { createSimulatorServer, SimulatorState } from './edge-simulator.mjs';
 
-const state = new SimulatorState({ monitoredBin: 'plastic', emptyDepthCm: 40 });
+const state = new SimulatorState({ monitoredBin: 'plastic', emptyDepthCm: 30 });
 const server = createSimulatorServer(state);
 let baseUrl;
 
@@ -51,7 +51,7 @@ test('drives full-bin and emptied flows through the board-compatible API', async
     body: JSON.stringify({ category: 'plastic', fill_percent: 95 }),
   });
   assert.equal(full.payload.bin.fill_percent, 95);
-  assert.equal(full.payload.bin.distance_cm, 2);
+  assert.equal(full.payload.bin.distance_cm, 1.5);
 
   const unsupported = await json('/api/simulator/fill', {
     method: 'POST',

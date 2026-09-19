@@ -35,6 +35,7 @@ export function FullBinAlarm() {
   const bins = useEcoStore((state) => state.bins);
   const acknowledgeAlert = useEcoStore((state) => state.acknowledgeAlert);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const isBackgrounded = appState === 'background';
   const previousAlertId = useRef<string | null>(null);
 
   const alert = useMemo(
@@ -65,10 +66,30 @@ export function FullBinAlarm() {
   useEffect(() => {
     if (!alert || !bin) return;
 
-    if (appState !== 'active') {
+    let cancelled = false;
+
+    if (isBackgrounded) {
       stopAlarmFeedback();
-      void showFullBinNotificationAsync(alert.id, bin.name, bin.fillPercent);
-      return;
+      void showFullBinNotificationAsync(alert.id, bin.name, bin.fillPercent).then(
+        (notificationShown) => {
+          if (cancelled) {
+            if (notificationShown) {
+              void dismissFullBinNotificationAsync(alert.id);
+            }
+            return;
+          }
+
+          // Android Expo Go cannot load expo-notifications. Keep the native
+          // looping pager alive as a best-effort fallback while backgrounded.
+          if (!notificationShown) {
+            void triggerAlarmFeedback(bin.name, bin.fillPercent);
+          }
+        },
+      );
+      return () => {
+        cancelled = true;
+        stopAlarmFeedback();
+      };
     }
 
     void dismissFullBinNotificationAsync(alert.id);
@@ -81,8 +102,11 @@ export function FullBinAlarm() {
       console.warn('Unable to announce the EcoSort alarm.', error);
     }
 
-    return stopAlarmFeedback;
-  }, [alert?.id, appState, bin?.fillPercent, bin?.name]);
+    return () => {
+      cancelled = true;
+      stopAlarmFeedback();
+    };
+  }, [alert?.id, isBackgrounded, bin?.fillPercent, bin?.name]);
 
   if (!alert || !bin) return null;
 

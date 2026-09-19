@@ -126,10 +126,10 @@ fillPercent = ((emptyDepthCm - currentDistanceCm) / emptyDepthCm) × 100
 
 The result is rounded and clamped to `0…100`. The reusable implementation is `calculateFillPercentage` in `src/utils/bin.ts`.
 
-Example: for an empty-bin depth of 40 cm and a current distance of 10 cm:
+Example: for an empty-bin depth of 30 cm and a current distance of 7.5 cm:
 
 ```text
-((40 - 10) / 40) × 100 = 75%
+((30 - 7.5) / 30) × 100 = 75%
 ```
 
 ## Connecting the FRDM-i.MX93
@@ -179,7 +179,7 @@ Restart Expo after changing the environment. To simulate the sensor in another
 bin or use a different empty depth:
 
 ```bash
-npm run simulator -- --sensor-bin metal --empty-depth-cm 35
+npm run simulator -- --sensor-bin metal --empty-depth-cm 30
 ```
 
 Run the simulator contract tests with `npm run simulator:test`.
@@ -203,8 +203,8 @@ The proposed REST contract is:
   "bins": [
     {
       "id": "plastic",
-      "distance_cm": 7.2,
-      "empty_depth_cm": 40,
+      "distance_cm": 5.4,
+      "empty_depth_cm": 30,
       "fill_percent": 82,
       "sensor_online": true
     }

@@ -23,7 +23,7 @@ function categoryName(category) {
 }
 
 export class SimulatorState {
-  constructor({ monitoredBin = 'plastic', emptyDepthCm = 40 } = {}) {
+  constructor({ monitoredBin = 'plastic', emptyDepthCm = 30 } = {}) {
     if (!CATEGORIES.includes(monitoredBin)) {
       throw new Error(`Unknown monitored bin: ${monitoredBin}`);
     }
@@ -372,7 +372,7 @@ function controlPanelHtml() {
 }
 
 function parseArgs(argv) {
-  const config = { host: '0.0.0.0', port: 8080, monitoredBin: 'plastic', emptyDepthCm: 40 };
+  const config = { host: '0.0.0.0', port: 8080, monitoredBin: 'plastic', emptyDepthCm: 30 };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     const value = argv[index + 1];
@@ -403,7 +403,7 @@ function lanAddresses(port) {
 async function main() {
   const config = parseArgs(process.argv.slice(2));
   if (config.help) {
-    console.log('Usage: npm run simulator -- [--port 8080] [--sensor-bin plastic|metal|general] [--empty-depth-cm 40]');
+    console.log('Usage: npm run simulator -- [--port 8080] [--sensor-bin plastic|metal|general] [--empty-depth-cm 30]');
     return;
   }
   const state = new SimulatorState(config);
