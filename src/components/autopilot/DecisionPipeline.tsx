@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText as Text } from '@/components/AppText';
 import { colors } from '@/theme';
 
 interface DecisionPipelineProps {

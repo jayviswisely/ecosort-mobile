@@ -4,7 +4,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DecisionPipeline } from '@/components/autopilot/DecisionPipeline';
 import HsinchuCityMap from '@/components/autopilot/HsinchuCityMap';
 import type { MapRisk } from '@/components/autopilot/mapTypes';
+import { AppText as Text } from '@/components/AppText';
 import { AUTOPILOT_STATIONS, type AutopilotStation } from '@/data/autopilotData';
 import {
   AUTOPILOT_ROUTE,

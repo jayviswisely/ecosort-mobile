@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Circle, Marker, Polyline, type MapStyleElement } from 'react-native-maps';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { AppText as Text } from '@/components/AppText';
 
 import {
   MAP_RISK_COLORS,

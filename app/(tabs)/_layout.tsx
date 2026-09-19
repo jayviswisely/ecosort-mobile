@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 import { useEcoStore } from '@/store/useEcoStore';
-import { colors } from '@/theme';
+import { colors, fonts } from '@/theme';
 
 export default function TabsLayout() {
   const unacknowledged = useEcoStore(
@@ -17,6 +17,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarLabelStyle: {
+          fontFamily: fonts.bold,
           fontSize: 11,
           fontWeight: '700',
           marginTop: 1,

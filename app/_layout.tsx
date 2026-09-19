@@ -1,4 +1,12 @@
 import { useEffect } from 'react';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/manrope';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +17,13 @@ import { useEcoStore } from '@/store/useEcoStore';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
   const initialize = useEcoStore((state) => state.initialize);
   const dispose = useEcoStore((state) => state.dispose);
   const isReady = useEcoStore((state) => state.isReady);
@@ -31,7 +46,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <StatusBar style="dark" />
-      {isReady ? (
+      {isReady && (fontsLoaded || fontError) ? (
         <View style={styles.app}>
           <Stack
             screenOptions={{

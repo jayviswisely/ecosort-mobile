@@ -1,9 +1,10 @@
 import 'leaflet/dist/leaflet.css';
 
 import { createElement, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type * as Leaflet from 'leaflet';
 
+import { AppText as Text } from '@/components/AppText';
 import { MAP_RISK_COLORS, type HsinchuCityMapProps, type MapStation } from './mapTypes';
 
 const INITIAL_CENTER: Leaflet.LatLngExpression = [24.802, 120.963];
@@ -43,9 +44,11 @@ export default function HsinchuCityMap(props: HsinchuCityMapProps) {
       });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
       }).addTo(map);
+
+      installCollapsibleAttribution(map);
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
       L.control.scale({ imperial: false, maxWidth: 90, position: 'bottomleft' }).addTo(map);
@@ -105,6 +108,39 @@ export default function HsinchuCityMap(props: HsinchuCityMapProps) {
       </View>
     </View>
   );
+}
+
+function installCollapsibleAttribution(map: Leaflet.Map) {
+  const control = map.attributionControl;
+  control.setPrefix(false);
+
+  const container = control.getContainer();
+  if (!container) return;
+
+  container.style.borderRadius = '8px 0 0 0';
+  container.style.boxShadow = '0 1px 5px rgba(16,39,27,.12)';
+  container.style.color = '#52645A';
+  container.style.font = '700 9px/1.2 Manrope_700Bold, system-ui';
+  container.style.padding = '4px 6px';
+
+  const fullAttribution = container.innerHTML;
+  let expanded = true;
+
+  const collapse = () => {
+    if (!expanded) return;
+    expanded = false;
+    container.innerHTML = '<button type="button" aria-label="Map data attribution" title="Map data attribution" style="appearance:none;border:0;background:transparent;color:#52645A;cursor:pointer;font:800 11px/1 Manrope_800ExtraBold,system-ui;padding:1px 2px;">ⓘ</button>';
+    container.querySelector('button')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      expanded = true;
+      container.innerHTML = fullAttribution;
+    });
+  };
+
+  window.setTimeout(collapse, 5000);
+  map.once('movestart', collapse);
+  map.once('zoomstart', collapse);
 }
 
 function drawOperationalLayers(
@@ -212,10 +248,10 @@ function buildMarkerHtml(
 
   return `
     <div style="display:flex;flex-direction:column;align-items:center;width:36px;transform:scale(${scale});transform-origin:18px 28px;filter:drop-shadow(0 4px 6px rgba(16,39,27,.28));">
-      <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:4px solid ${ring};border-radius:50% 50% 50% 4px;background:${visual.dark};color:${visual.color};font:900 10px/1 system-ui;transform:rotate(-45deg);">
+      <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:4px solid ${ring};border-radius:50% 50% 50% 4px;background:${visual.dark};color:${visual.color};font:800 10px/1 Manrope_800ExtraBold,system-ui;transform:rotate(-45deg);">
         <span style="transform:rotate(45deg);">${content}${routeNumber > 0 ? '' : '%'}</span>
       </div>
-      <div style="pointer-events:none;margin-top:2px;padding:3px 6px;border-radius:6px;background:${selected ? '#FFFFFF' : 'rgba(16,39,27,.92)'};color:${selected ? '#164E31' : '#FFFFFF'};font:800 9px/1.1 system-ui;white-space:nowrap;">${station.shortName}</div>
+      <div style="pointer-events:none;margin-top:2px;padding:3px 6px;border-radius:6px;background:${selected ? '#FFFFFF' : 'rgba(16,39,27,.92)'};color:${selected ? '#164E31' : '#FFFFFF'};font:700 9px/1.1 Manrope_700Bold,system-ui;white-space:nowrap;">${station.shortName}</div>
     </div>`;
 }
 
@@ -231,7 +267,7 @@ function buildPopupHtml(station: MapStation) {
         : 'Capacity within operating target';
 
   return `
-    <div style="font-family:system-ui;color:#173D2C;padding:2px 1px 3px;">
+    <div style="font-family:Manrope_400Regular,system-ui;color:#173D2C;padding:2px 1px 3px;">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
         <span style="width:8px;height:8px;border-radius:50%;background:${visual.color};box-shadow:0 0 0 4px ${visual.color}22;"></span>
         <span style="font-size:9px;font-weight:900;letter-spacing:.7px;color:${visual.color};">${status}</span>
@@ -294,7 +330,7 @@ function createMapButton(label: string, title: string) {
     'box-shadow:0 2px 8px rgba(16,39,27,.14)',
     'color:#164E31',
     'cursor:pointer',
-    'font:900 9px/1 system-ui',
+    'font:800 9px/1 Manrope_800ExtraBold,system-ui',
     'letter-spacing:.4px',
     'padding:8px 9px',
   ].join(';');
