@@ -3,24 +3,45 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii } from '@/theme';
 
-const details = [
-  { label: 'Device', value: 'FRDM-i.MX93', icon: 'hardware-chip-outline' as const },
-  { label: 'Inference', value: 'Edge AI', icon: 'sparkles-outline' as const },
-  { label: 'Servo Controller', value: 'PCA9685', icon: 'git-network-outline' as const },
-  { label: 'Depth Sensors', value: '3 Connected', icon: 'pulse-outline' as const },
-];
+interface EdgeSystemCardProps {
+  connected: boolean;
+  live: boolean;
+  sensorCount: number;
+}
 
-export function EdgeSystemCard() {
+export function EdgeSystemCard({
+  connected,
+  live,
+  sensorCount,
+}: EdgeSystemCardProps) {
+  const details = [
+    { label: 'Device', value: 'FRDM-i.MX93', icon: 'hardware-chip-outline' as const },
+    { label: 'Inference', value: live ? 'Edge AI' : 'Simulated', icon: 'sparkles-outline' as const },
+    { label: 'Servo Controller', value: 'PCA9685', icon: 'git-network-outline' as const },
+    {
+      label: 'Depth Sensors',
+      value: `${sensorCount} Connected`,
+      icon: 'pulse-outline' as const,
+    },
+  ];
+
   return (
     <View style={styles.card}>
       <View style={styles.headingRow}>
         <View>
-          <Text style={styles.eyebrow}>LIVE HARDWARE</Text>
+          <Text style={styles.eyebrow}>{live ? 'LIVE HARDWARE' : 'DEMO MODE'}</Text>
           <Text style={styles.title}>Edge System</Text>
         </View>
         <View style={styles.connectionBadge}>
-          <View style={styles.dot} />
-          <Text style={styles.connectionText}>Connected</Text>
+          <View
+            style={[
+              styles.dot,
+              !connected && { backgroundColor: colors.danger },
+            ]}
+          />
+          <Text style={styles.connectionText}>
+            {connected ? 'Connected' : 'Offline'}
+          </Text>
         </View>
       </View>
       <View style={styles.grid}>
