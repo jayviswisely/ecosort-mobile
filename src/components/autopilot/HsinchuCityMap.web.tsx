@@ -1,157 +1,345 @@
-import { createElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import 'leaflet/dist/leaflet.css';
 
-import { MAP_RISK_COLORS, type HsinchuCityMapProps } from './mapTypes';
+import { createElement, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import type * as Leaflet from 'leaflet';
 
-const BOUNDS = {
-  west: 120.849609375,
-  east: 121.11328125,
-  south: 24.686952412,
-  north: 24.926294766,
-};
-const MAP_TILES = Array.from({ length: 9 }, (_, index) => ({
-  x: 3423 + (index % 3),
-  y: 1755 + Math.floor(index / 3),
-  column: index % 3,
-  row: Math.floor(index / 3),
-}));
+import { MAP_RISK_COLORS, type HsinchuCityMapProps, type MapStation } from './mapTypes';
 
-function mapPosition(latitude: number, longitude: number) {
-  return {
-    left: `${((longitude - BOUNDS.west) / (BOUNDS.east - BOUNDS.west)) * 100}%` as const,
-    top: `${((BOUNDS.north - latitude) / (BOUNDS.north - BOUNDS.south)) * 100}%` as const,
-  };
-}
+const INITIAL_CENTER: Leaflet.LatLngExpression = [24.802, 120.963];
 
-export default function HsinchuCityMap({
-  stations,
-  selectedStationId,
-  routeActive,
-  routeStationIds,
-  onSelectStation,
-}: HsinchuCityMapProps) {
+interface CurrentMapState extends HsinchuCityMapProps {}
+
+export default function HsinchuCityMap(props: HsinchuCityMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const leafletRef = useRef<typeof Leaflet | null>(null);
+  const mapRef = useRef<Leaflet.Map | null>(null);
+  const overlaysRef = useRef<Leaflet.LayerGroup | null>(null);
+  const latestStateRef = useRef<CurrentMapState>(props);
+
+  latestStateRef.current = props;
+
+  useEffect(() => {
+    let disposed = false;
+
+    async function createMap() {
+      const module = await import('leaflet');
+      const L: typeof Leaflet = module.default ?? module;
+      const container = containerRef.current;
+
+      if (disposed || !container || mapRef.current) return;
+
+      leafletRef.current = L;
+      const map = L.map(container, {
+        attributionControl: true,
+        center: INITIAL_CENTER,
+        minZoom: 11,
+        maxZoom: 18,
+        scrollWheelZoom: true,
+        touchZoom: true,
+        zoom: 12.5,
+        zoomControl: false,
+        zoomSnap: 0.5,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      L.control.scale({ imperial: false, maxWidth: 90, position: 'bottomleft' }).addTo(map);
+
+      const overlays = L.layerGroup().addTo(map);
+      mapRef.current = map;
+      overlaysRef.current = overlays;
+
+      addViewControls(L, map, () => latestStateRef.current.stations);
+      drawOperationalLayers(L, map, overlays, latestStateRef.current);
+
+      window.setTimeout(() => map.invalidateSize(), 0);
+    }
+
+    void createMap();
+
+    return () => {
+      disposed = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      overlaysRef.current = null;
+      leafletRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    const overlays = overlaysRef.current;
+    if (!L || !map || !overlays) return;
+
+    drawOperationalLayers(L, map, overlays, props);
+  }, [props.routeActive, props.routeStationIds, props.selectedStationId, props.stations]);
+
   return (
     <View style={styles.wrap}>
-      {MAP_TILES.map((tile) =>
-        createElement('img', {
-          key: `${tile.x}-${tile.y}`,
-          alt: '',
-          src: `https://tile.openstreetmap.org/12/${tile.x}/${tile.y}.png`,
-          style: {
-            position: 'absolute',
-            left: `${tile.column * 33.333333}%`,
-            top: `${tile.row * 33.333333}%`,
-            width: '33.5%',
-            height: '33.5%',
-            objectFit: 'fill',
-            pointerEvents: 'none',
-            filter: 'saturate(0.72) contrast(1.03)',
-          },
-          draggable: false,
-          'aria-hidden': true,
-        }),
-      )}
-      <View style={styles.mapTint} />
-
-      {routeActive && (
-        <View style={[StyleSheet.absoluteFill, styles.nonInteractive]}>
-          <View style={[styles.routePath, { left: '46%', top: '46%', width: '9%', transform: [{ rotate: '-13deg' }] }]} />
-          <View style={[styles.routePath, { left: '50%', top: '50%', width: '11%', transform: [{ rotate: '71deg' }] }]} />
-          <View style={[styles.routePath, { left: '53%', top: '56%', width: '18%', transform: [{ rotate: '-16deg' }] }]} />
-        </View>
-      )}
-
-      {stations.map((station) => {
-        const selected = station.id === selectedStationId;
-        const routeNumber = routeActive ? routeStationIds.indexOf(station.id) + 1 : 0;
-        const visual = MAP_RISK_COLORS[station.currentRisk];
-        return (
-          <Pressable
-            key={station.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${station.name}, ${station.currentFill}% full`}
-            onPress={() => onSelectStation(station.id)}
-            style={[styles.marker, mapPosition(station.latitude, station.longitude), selected && styles.markerSelected]}
-          >
-            {station.currentRisk === 'critical' && (
-              <View style={[styles.riskHalo, { borderColor: visual.color, backgroundColor: `${visual.color}18` }]} />
-            )}
-            <View style={[styles.pin, { borderColor: visual.color, backgroundColor: visual.dark }]}>
-              <Text style={[styles.pinText, { color: visual.color }]}>
-                {routeNumber > 0 ? routeNumber : station.currentFill}
-              </Text>
-            </View>
-            <View style={[styles.label, selected && styles.labelSelected]}>
-              <Text style={[styles.labelText, selected && styles.labelTextSelected]}>{station.shortName}</Text>
-            </View>
-          </Pressable>
-        );
+      {createElement('div', {
+        ref: containerRef,
+        role: 'application',
+        'aria-label': 'Interactive Hsinchu City operations map',
+        style: {
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: '#DDE6DF',
+        },
       })}
 
       <View style={styles.layerBadge}>
         <View style={styles.layerDot} />
-        <Text style={styles.layerText}>OPENSTREETMAP · LIVE STREET LAYER</Text>
+        <View>
+          <Text style={styles.layerTitle}>LIVE STREET OPERATIONS</Text>
+          <Text style={styles.layerHint}>Drag to pan · Pinch or scroll to zoom</Text>
+        </View>
       </View>
       <View style={styles.demoBadge}>
         <Text style={styles.demoText}>PROPOSED DEMO DEPLOYMENT</Text>
       </View>
-      <Text style={styles.attribution}>© OpenStreetMap contributors</Text>
     </View>
   );
 }
 
+function drawOperationalLayers(
+  L: typeof Leaflet,
+  map: Leaflet.Map,
+  overlays: Leaflet.LayerGroup,
+  state: CurrentMapState,
+) {
+  overlays.clearLayers();
+
+  const stationById = new Map(state.stations.map((station) => [station.id, station]));
+  const routeStations = state.routeStationIds
+    .map((id) => stationById.get(id))
+    .filter((station): station is MapStation => Boolean(station));
+
+  if (state.routeActive && routeStations.length > 1) {
+    const routePoints = routeStations.map(
+      (station) => [station.latitude, station.longitude] as Leaflet.LatLngTuple,
+    );
+
+    L.polyline(routePoints, {
+      color: '#FFFFFF',
+      lineCap: 'round',
+      lineJoin: 'round',
+      opacity: 0.96,
+      weight: 10,
+    }).addTo(overlays);
+
+    L.polyline(routePoints, {
+      color: '#176A3B',
+      dashArray: '10 8',
+      lineCap: 'round',
+      lineJoin: 'round',
+      opacity: 1,
+      weight: 5,
+    })
+      .bindTooltip('Optimized low-emission collection route', {
+        direction: 'center',
+        sticky: true,
+      })
+      .addTo(overlays);
+  }
+
+  state.stations.forEach((station) => {
+    const visual = MAP_RISK_COLORS[station.currentRisk];
+    const selected = station.id === state.selectedStationId;
+    const routeNumber = state.routeActive ? state.routeStationIds.indexOf(station.id) + 1 : 0;
+
+    if (station.currentRisk === 'critical' || station.currentRisk === 'watch') {
+      const isCritical = station.currentRisk === 'critical';
+      L.circle([station.latitude, station.longitude], {
+        color: visual.color,
+        fillColor: visual.color,
+        fillOpacity: isCritical ? 0.14 : 0.08,
+        opacity: isCritical ? 0.75 : 0.5,
+        radius: isCritical ? 480 : 280,
+        weight: isCritical ? 2 : 1,
+      }).addTo(overlays);
+    }
+
+    const icon = L.divIcon({
+      className: 'ecosort-leaflet-marker',
+      html: buildMarkerHtml(station, visual, selected, routeNumber),
+      iconAnchor: [18, 29],
+      iconSize: [36, 56],
+      popupAnchor: [0, -27],
+    });
+
+    const marker = L.marker([station.latitude, station.longitude], {
+      alt: `${station.name}, ${station.currentFill}% full`,
+      icon,
+      keyboard: true,
+      riseOnHover: true,
+      title: station.name,
+      // Keep the selected marker below neighboring pins while its popup is open,
+      // so dense downtown stations remain individually tappable.
+      zIndexOffset: selected ? -500 : routeNumber > 0 ? 500 : 0,
+    })
+      .bindPopup(buildPopupHtml(station), {
+        className: 'ecosort-map-popup',
+        closeButton: false,
+        maxWidth: 260,
+        minWidth: 210,
+        offset: [0, -3],
+      })
+      .on('click', () => {
+        state.onSelectStation(station.id);
+        if (map.getZoom() < 14) map.flyTo([station.latitude, station.longitude], 15, { duration: 0.65 });
+      })
+      .addTo(overlays);
+
+    if (selected) marker.openPopup();
+  });
+}
+
+function buildMarkerHtml(
+  station: MapStation,
+  visual: { color: string; dark: string },
+  selected: boolean,
+  routeNumber: number,
+) {
+  const content = routeNumber > 0 ? routeNumber : station.currentFill;
+  const ring = selected ? '#FFFFFF' : visual.color;
+  const scale = selected ? 1.13 : 1;
+
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;width:36px;transform:scale(${scale});transform-origin:18px 28px;filter:drop-shadow(0 4px 6px rgba(16,39,27,.28));">
+      <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:4px solid ${ring};border-radius:50% 50% 50% 4px;background:${visual.dark};color:${visual.color};font:900 10px/1 system-ui;transform:rotate(-45deg);">
+        <span style="transform:rotate(45deg);">${content}${routeNumber > 0 ? '' : '%'}</span>
+      </div>
+      <div style="pointer-events:none;margin-top:2px;padding:3px 6px;border-radius:6px;background:${selected ? '#FFFFFF' : 'rgba(16,39,27,.92)'};color:${selected ? '#164E31' : '#FFFFFF'};font:800 9px/1.1 system-ui;white-space:nowrap;">${station.shortName}</div>
+    </div>`;
+}
+
+function buildPopupHtml(station: MapStation) {
+  const visual = MAP_RISK_COLORS[station.currentRisk];
+  const status = station.currentRisk.replace('_', ' ').toUpperCase();
+  const instruction = station.currentRisk === 'critical'
+    ? 'Collection intervention required now'
+    : station.currentRisk === 'watch'
+      ? 'Predicted capacity risk — monitor route'
+      : station.currentRisk === 'offline'
+        ? 'Sensor link offline — field check needed'
+        : 'Capacity within operating target';
+
+  return `
+    <div style="font-family:system-ui;color:#173D2C;padding:2px 1px 3px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${visual.color};box-shadow:0 0 0 4px ${visual.color}22;"></span>
+        <span style="font-size:9px;font-weight:900;letter-spacing:.7px;color:${visual.color};">${status}</span>
+      </div>
+      <div style="font-size:15px;font-weight:900;line-height:1.15;margin-bottom:8px;">${station.name}</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:11px;color:#607067;">Current capacity</span>
+        <span style="font-size:20px;font-weight:900;">${station.currentFill}%</span>
+      </div>
+      <div style="height:6px;border-radius:99px;background:#E3EAE6;overflow:hidden;margin-bottom:9px;">
+        <div style="height:100%;width:${Math.max(2, station.currentFill)}%;background:${visual.color};border-radius:99px;"></div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#52645A;">${instruction}</div>
+    </div>`;
+}
+
+function addViewControls(
+  L: typeof Leaflet,
+  map: Leaflet.Map,
+  getStations: () => MapStation[],
+) {
+  const control = new L.Control({ position: 'topright' });
+
+  control.onAdd = () => {
+    const container = L.DomUtil.create('div');
+    container.style.display = 'flex';
+    container.style.gap = '5px';
+    container.style.marginTop = '8px';
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+
+    const cityButton = createMapButton('City', 'Show all Hsinchu stations');
+    const coreButton = createMapButton('Core', 'Focus on the central operating corridor');
+
+    L.DomEvent.on(cityButton, 'click', () => {
+      const bounds = L.latLngBounds(
+        getStations().map((station) => [station.latitude, station.longitude] as Leaflet.LatLngTuple),
+      );
+      map.fitBounds(bounds.pad(0.16), { animate: true, maxZoom: 13 });
+    });
+    L.DomEvent.on(coreButton, 'click', () => map.flyTo([24.8, 120.979], 14.5, { duration: 0.75 }));
+
+    container.append(cityButton, coreButton);
+    return container;
+  };
+
+  control.addTo(map);
+}
+
+function createMapButton(label: string, title: string) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.title = title;
+  button.textContent = label;
+  button.style.cssText = [
+    'appearance:none',
+    'border:1px solid rgba(22,78,49,.18)',
+    'border-radius:8px',
+    'background:rgba(255,255,255,.96)',
+    'box-shadow:0 2px 8px rgba(16,39,27,.14)',
+    'color:#164E31',
+    'cursor:pointer',
+    'font:900 9px/1 system-ui',
+    'letter-spacing:.4px',
+    'padding:8px 9px',
+  ].join(';');
+  return button;
+}
+
 const styles = StyleSheet.create({
-  wrap: { position: 'relative', height: 350, overflow: 'hidden', backgroundColor: '#DDE6DF' },
-  mapTint: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    backgroundColor: 'rgba(22,78,49,0.08)',
+  wrap: {
+    position: 'relative',
+    height: 420,
+    overflow: 'hidden',
+    backgroundColor: '#DDE6DF',
   },
-  marker: {
-    position: 'absolute',
-    width: 60,
-    alignItems: 'center',
-    marginLeft: -30,
-    marginTop: -16,
-    zIndex: 4,
-  },
-  markerSelected: { zIndex: 10, transform: [{ scale: 1.1 }] },
-  riskHalo: { position: 'absolute', top: -7, width: 46, height: 46, borderRadius: 23, borderWidth: 2 },
-  pin: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    boxShadow: '0 4px 9px rgba(16,39,27,0.26)',
-  },
-  pinText: { fontSize: 10, fontWeight: '900' },
-  label: { marginTop: 3, paddingHorizontal: 5, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(16,39,27,0.9)' },
-  labelSelected: { backgroundColor: '#FFFFFF' },
-  labelText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
-  labelTextSelected: { color: '#164E31' },
-  routePath: { position: 'absolute', height: 5, borderRadius: 3, backgroundColor: '#246B43', boxShadow: '0 0 8px rgba(36,107,67,0.65)' },
-  nonInteractive: { pointerEvents: 'none' },
   layerBadge: {
     position: 'absolute',
     left: 10,
     top: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    boxShadow: '0 3px 10px rgba(16,39,27,0.14)',
+    pointerEvents: 'none',
+  },
+  layerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#2F9E62',
+    boxShadow: '0 0 0 4px rgba(47,158,98,0.15)',
+  },
+  layerTitle: { color: '#164E31', fontSize: 8, fontWeight: '900', letterSpacing: 0.65 },
+  layerHint: { marginTop: 2, color: '#6C7C73', fontSize: 7, fontWeight: '700' },
+  demoBadge: {
+    position: 'absolute',
+    left: 10,
+    bottom: 26,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: 7,
+    backgroundColor: 'rgba(16,39,27,0.9)',
+    pointerEvents: 'none',
   },
-  layerDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#2F9E62' },
-  layerText: { color: '#164E31', fontSize: 7, fontWeight: '900', letterSpacing: 0.6 },
-  demoBadge: { position: 'absolute', left: 10, bottom: 10, paddingHorizontal: 7, paddingVertical: 5, borderRadius: 7, backgroundColor: 'rgba(16,39,27,0.9)' },
   demoText: { color: '#FFFFFF', fontSize: 7, fontWeight: '900', letterSpacing: 0.6 },
-  attribution: { position: 'absolute', right: 6, bottom: 4, color: '#33483A', fontSize: 7, backgroundColor: 'rgba(255,255,255,0.82)', paddingHorizontal: 3 },
 });

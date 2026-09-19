@@ -23,6 +23,7 @@
     "expo-linking": "~57.0.10",
     "expo-router": "~57.0.22",
     "expo-status-bar": "~57.0.1",
+    "leaflet": "^1.9.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -35,6 +36,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/react": "~19.2.2",
     "expo-doctor": "^1.19.2",
     "typescript": "~6.0.3"
