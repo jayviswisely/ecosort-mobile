@@ -3,24 +3,24 @@ import { Animated, StyleSheet, View } from 'react-native';
 
 import type { BinStatus } from '@/types';
 import { colors } from '@/theme';
-import { getStatusColor } from '@/utils/bin';
+import { getFillProgress, getStatusColor } from '@/utils/bin';
 
 interface FillIndicatorProps {
-  percent: number;
   status: BinStatus;
   height?: number;
 }
 
-export function FillIndicator({ percent, status, height = 10 }: FillIndicatorProps) {
-  const progress = useRef(new Animated.Value(percent)).current;
+export function FillIndicator({ status, height = 10 }: FillIndicatorProps) {
+  const target = getFillProgress(status);
+  const progress = useRef(new Animated.Value(target)).current;
 
   useEffect(() => {
     Animated.timing(progress, {
-      toValue: percent,
+      toValue: target,
       duration: 520,
       useNativeDriver: false,
     }).start();
-  }, [percent, progress]);
+  }, [progress, target]);
 
   const width = progress.interpolate({
     inputRange: [0, 100],

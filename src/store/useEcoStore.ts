@@ -18,6 +18,7 @@ import type {
   DetectionNotice,
   DisposalEvent,
   EdgeUpdate,
+  FillState,
   SmartBin,
 } from '@/types';
 import { getStatusLabel } from '@/utils/bin';
@@ -33,7 +34,7 @@ interface EcoState {
   isReady: boolean;
   initialize: () => Promise<void>;
   dispose: () => void;
-  setDemoFill: (category: BinCategory, fillPercent: number) => void;
+  setDemoFill: (category: BinCategory, fillState: FillState) => void;
   simulateDisposal: (
     detectedObject: 'PET Bottle' | 'Aluminum Can' | 'Tissue' | 'Snack Wrapper',
   ) => void;
@@ -51,7 +52,9 @@ function buildAlert(bin: SmartBin, type: AlertType): BinAlert {
   const message =
     type === 'offline'
       ? `${bin.name} sensor stopped reporting.`
-      : `${bin.name} has reached ${bin.fillPercent}% capacity.`;
+      : type === 'full'
+        ? `${bin.name} is full and requires collection.`
+        : `${bin.name} is half-full.`;
 
   return {
     id: `alert-${bin.id}-${type}-${Date.now()}`,
@@ -70,7 +73,7 @@ function applyBinUpdate(
 ): { bins: SmartBin[]; alerts: BinAlert[] } {
   const previous = bins.find((bin) => bin.id === nextBin.id);
   const alertType: AlertType | null =
-    nextBin.status !== 'normal' && previous?.status !== nextBin.status
+    nextBin.status !== 'empty' && previous?.status !== nextBin.status
       ? nextBin.status
       : null;
 
@@ -116,7 +119,7 @@ export const useEcoStore = create<EcoState>()(
                 title: isMaintenance
                   ? `${binName} bin emptied`
                   : `${update.event.detectedObject} detected`,
-                message: isMaintenance ? 'Fill level reset to 3%' : `→ ${binName} Bin`,
+                message: isMaintenance ? 'Fill state reset to Empty' : `→ ${binName} Bin`,
               },
             };
           });
@@ -162,7 +165,7 @@ export const useEcoStore = create<EcoState>()(
                 alerts = bins
                   .filter(
                     (bin) =>
-                      bin.status === 'almost_full' || bin.status === 'full',
+                      bin.status === 'half-full' || bin.status === 'full',
                   )
                   .map((bin) => buildAlert(bin, bin.status as AlertType));
               }
@@ -198,9 +201,9 @@ export const useEcoStore = create<EcoState>()(
           unsubscribeFromEdge = undefined;
         },
 
-        setDemoFill: (category, fillPercent) =>
+        setDemoFill: (category, fillState) =>
           edgeMode === 'demo'
-            ? simulatedEdgeDataSource.setFillLevel(category, fillPercent)
+            ? simulatedEdgeDataSource.setFillLevel(category, fillState)
             : undefined,
 
         simulateDisposal: (detectedObject) =>
@@ -240,7 +243,7 @@ export const useEcoStore = create<EcoState>()(
       };
     },
     {
-      name: edgeMode === 'live' ? 'ecosort-state-live-v1' : 'ecosort-state-v1',
+      name: edgeMode === 'live' ? 'ecosort-state-live-v2' : 'ecosort-state-v2',
       storage: createJSONStorage(() => AsyncStorage),
       skipHydration: true,
       partialize: (state) => ({
@@ -256,7 +259,7 @@ export const useEcoStore = create<EcoState>()(
 export function useAttentionCount(): number {
   return useEcoStore(
     (state) =>
-      state.bins.filter((bin) => bin.status !== 'normal').length,
+      state.bins.filter((bin) => bin.status !== 'empty').length,
   );
 }
 

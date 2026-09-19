@@ -9,7 +9,7 @@ import {
 } from '@/services/alarm/alarmFeedback';
 import { useEcoStore } from '@/store/useEcoStore';
 import { colors, radii } from '@/theme';
-import type { BinCategory } from '@/types';
+import type { BinCategory, FillState } from '@/types';
 import {
   getCategoryColor,
   getCategoryIcon,
@@ -22,7 +22,11 @@ interface DemoControlPanelProps {
 }
 
 const categories: BinCategory[] = ['plastic', 'metal', 'general'];
-const levels = [20, 50, 80, 95];
+const levels: { label: string; value: FillState }[] = [
+  { label: 'Empty', value: 'empty' },
+  { label: 'Half-full', value: 'half-full' },
+  { label: 'Full', value: 'full' },
+];
 const objects = [
   { name: 'PET Bottle' as const, category: 'Plastic', icon: 'water-outline' as const },
   { name: 'Aluminum Can' as const, category: 'Metal', icon: 'cube-outline' as const },
@@ -53,8 +57,8 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
     [],
   );
 
-  const selectFillLevel = (category: BinCategory, level: number) => {
-    if (level < 90) {
+  const selectFillLevel = (category: BinCategory, level: FillState) => {
+    if (level !== 'full') {
       setDemoFill(category, level);
       return;
     }
@@ -79,7 +83,7 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
       return;
     }
 
-    void triggerAlarmFeedback('Demo Full Bin', 95);
+    void triggerAlarmFeedback('Demo Full Bin');
     setTestAlarmPlaying(true);
   };
 
@@ -108,7 +112,7 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
           <View style={styles.infoCard}>
             <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
             <Text style={styles.infoText}>
-              Changes happen instantly and are saved on this device. Alerts are created when a bin crosses 75% or 90%.
+              Changes happen instantly and are saved on this device. A Full state triggers the staff alarm.
             </Text>
           </View>
 
@@ -188,12 +192,12 @@ export function DemoControlPanel({ visible, onClose }: DemoControlPanelProps) {
                 <View style={styles.levelRow}>
                   {levels.map((level) => (
                     <Pressable
-                      key={level}
+                      key={level.value}
                       accessibilityRole="button"
-                      onPress={() => selectFillLevel(category, level)}
+                      onPress={() => selectFillLevel(category, level.value)}
                       style={({ pressed }) => [styles.levelButton, pressed && styles.pressed]}
                     >
-                      <Text style={styles.levelText}>{level}%</Text>
+                      <Text style={styles.levelText}>{level.label}</Text>
                     </Pressable>
                   ))}
                 </View>

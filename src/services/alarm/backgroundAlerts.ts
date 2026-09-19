@@ -91,7 +91,6 @@ export async function prepareBackgroundAlertsAsync(): Promise<boolean> {
 export async function showFullBinNotificationAsync(
   alertId: string,
   binName: string,
-  fillPercent: number,
 ): Promise<boolean> {
   const Notifications = await getNotificationsAsync();
   if (!Notifications) return false;
@@ -109,7 +108,7 @@ export async function showFullBinNotificationAsync(
       identifier: notificationId(alertId),
       content: {
         title: 'Collection required',
-        body: `${binName} is ${fillPercent}% full. Open EcoSort to respond.`,
+        body: `${binName} is full. Open EcoSort to respond.`,
         data: { alertId, type: 'full-bin' },
         sound: notificationSound,
         badge: 1,

@@ -1,7 +1,7 @@
 import { createInitialBins, createInitialEvents } from '@/data/initialData';
 import type { EdgeDataSource } from '@/services/edge/EdgeDataSource';
-import type { BinCategory, DisposalEvent, EdgeUpdate, SmartBin } from '@/types';
-import { distanceForFill, getStatus } from '@/utils/bin';
+import type { BinCategory, DisposalEvent, EdgeUpdate, FillState, SmartBin } from '@/types';
+import { distanceForFill, getFillProgress } from '@/utils/bin';
 
 type Listener = (update: EdgeUpdate) => void;
 
@@ -42,14 +42,14 @@ export class SimulatedEdgeDataSource implements EdgeDataSource {
     if (events.length > 0) this.events = events.map((event) => ({ ...event }));
   }
 
-  setFillLevel(category: BinCategory, fillPercent: number): void {
+  setFillLevel(category: BinCategory, fillState: FillState): void {
     const existing = this.findBin(category);
-    const nextFill = Math.min(100, Math.max(0, Math.round(fillPercent)));
     const bin: SmartBin = {
       ...existing,
-      fillPercent: nextFill,
-      distanceCm: distanceForFill(existing.emptyDepthCm, nextFill),
-      status: getStatus(nextFill),
+      distanceCm: distanceForFill(existing.emptyDepthCm, getFillProgress(fillState)),
+      status: fillState,
+      fillSource: 'simulator',
+      fillConfidence: null,
       lastUpdated: new Date().toISOString(),
     };
 
@@ -60,7 +60,6 @@ export class SimulatedEdgeDataSource implements EdgeDataSource {
   simulateDisposal(detectedObject: keyof typeof simulatedObjects): void {
     const configuration = simulatedObjects[detectedObject];
     const existing = this.findBin(configuration.category);
-    const nextFill = Math.min(100, existing.fillPercent + configuration.fillIncrement);
     const timestamp = new Date().toISOString();
     const event: DisposalEvent = {
       id: `event-${Date.now()}`,
@@ -72,9 +71,13 @@ export class SimulatedEdgeDataSource implements EdgeDataSource {
     };
     const bin: SmartBin = {
       ...existing,
-      fillPercent: nextFill,
-      distanceCm: distanceForFill(existing.emptyDepthCm, nextFill),
-      status: getStatus(nextFill),
+      status: existing.status === 'empty' || existing.status === 'offline' ? 'half-full' : existing.status,
+      distanceCm: distanceForFill(
+        existing.emptyDepthCm,
+        getFillProgress(existing.status === 'empty' || existing.status === 'offline' ? 'half-full' : existing.status),
+      ),
+      fillSource: 'simulator',
+      fillConfidence: null,
       lastUpdated: timestamp,
       itemCountToday: existing.itemCountToday + 1,
     };
@@ -103,12 +106,12 @@ export class SimulatedEdgeDataSource implements EdgeDataSource {
   markEmptied(category: BinCategory): void {
     const existing = this.findBin(category);
     const timestamp = new Date().toISOString();
-    const fillPercent = 3;
     const bin: SmartBin = {
       ...existing,
-      fillPercent,
-      distanceCm: distanceForFill(existing.emptyDepthCm, fillPercent),
-      status: 'normal',
+      distanceCm: existing.emptyDepthCm,
+      status: 'empty',
+      fillSource: 'manual',
+      fillConfidence: null,
       lastUpdated: timestamp,
       lastEmptied: timestamp,
     };

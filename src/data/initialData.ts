@@ -1,5 +1,5 @@
 import type { BinAlert, DisposalEvent, SmartBin } from '@/types';
-import { distanceForFill, getStatus } from '@/utils/bin';
+import { distanceForFill } from '@/utils/bin';
 
 const isoMinutesAgo = (minutes: number) =>
   new Date(Date.now() - minutes * 60_000).toISOString();
@@ -9,19 +9,20 @@ const isoHoursAgo = (hours: number) =>
 
 export function createInitialBins(): SmartBin[] {
   const base = [
-    { id: 'plastic', category: 'plastic' as const, name: 'Plastic Bin', fill: 82, count: 37 },
-    { id: 'metal', category: 'metal' as const, name: 'Metal Bin', fill: 41, count: 18 },
-    { id: 'general', category: 'general' as const, name: 'General Bin', fill: 63, count: 29 },
+    { id: 'plastic', category: 'plastic' as const, name: 'Plastic Bin', fill: 100, status: 'full' as const, count: 37 },
+    { id: 'metal', category: 'metal' as const, name: 'Metal Bin', fill: 50, status: 'half-full' as const, count: 18 },
+    { id: 'general', category: 'general' as const, name: 'General Bin', fill: 50, status: 'half-full' as const, count: 29 },
   ];
 
-  return base.map(({ id, category, name, fill, count }, index) => ({
+  return base.map(({ id, category, name, fill, status, count }, index) => ({
     id,
     category,
     name,
-    fillPercent: fill,
     distanceCm: distanceForFill(30, fill),
     emptyDepthCm: 30,
-    status: getStatus(fill),
+    status,
+    fillSource: 'simulator',
+    fillConfidence: null,
     lastUpdated: new Date(Date.now() - (8 + index * 4) * 1_000).toISOString(),
     lastEmptied: isoHoursAgo(5 + index * 2),
     itemCountToday: count,
@@ -60,10 +61,10 @@ export function createInitialEvents(): DisposalEvent[] {
 export function createInitialAlerts(): BinAlert[] {
   return [
     {
-      id: 'alert-plastic-almost-full',
+      id: 'alert-plastic-full',
       binId: 'plastic',
-      type: 'almost_full',
-      message: 'Plastic Bin has reached 82% capacity.',
+      type: 'full',
+      message: 'Plastic Bin is full and requires collection.',
       timestamp: isoMinutesAgo(2),
       acknowledged: false,
     },

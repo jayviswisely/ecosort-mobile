@@ -1,17 +1,20 @@
 export type BinCategory = 'plastic' | 'metal' | 'general';
 
-export type BinStatus = 'normal' | 'almost_full' | 'full' | 'offline';
+export type FillState = 'empty' | 'half-full' | 'full';
 
-export type AlertType = Exclude<BinStatus, 'normal'>;
+export type BinStatus = FillState | 'offline';
+
+export type AlertType = Exclude<BinStatus, 'empty'>;
 
 export interface SmartBin {
   id: string;
   category: BinCategory;
   name: string;
-  fillPercent: number;
   distanceCm: number;
   emptyDepthCm: number;
   status: BinStatus;
+  fillSource: string | null;
+  fillConfidence: number | null;
   lastUpdated: string;
   lastEmptied: string;
   itemCountToday: number;

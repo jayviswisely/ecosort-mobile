@@ -9,6 +9,7 @@ import {
   getCategoryColor,
   getCategoryIcon,
   getCategorySoftColor,
+  getStatusLabel,
 } from '@/utils/bin';
 import { relativeTime } from '@/utils/date';
 
@@ -23,7 +24,7 @@ export function BinCard({ bin, onPress }: BinCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${bin.name}, ${bin.fillPercent}% full, open details`}
+      accessibilityLabel={`${bin.name}, ${getStatusLabel(bin.status)}, open details`}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -52,17 +53,14 @@ export function BinCard({ bin, onPress }: BinCardProps) {
       </View>
 
       <View style={styles.metricRow}>
-        <View style={styles.percentRow}>
-          <Text style={styles.percent}>{bin.fillPercent}</Text>
-          <Text style={styles.percentSymbol}>%</Text>
-        </View>
+        <Text style={styles.stateLabel}>{getStatusLabel(bin.status)}</Text>
         <StatusBadge status={bin.status} compact />
       </View>
 
-      <FillIndicator percent={bin.fillPercent} status={bin.status} />
+      <FillIndicator status={bin.status} />
 
       <View style={styles.footer}>
-        <Text style={styles.footerLabel}>Capacity used</Text>
+        <Text style={styles.footerLabel}>Camera fill state</Text>
         <View style={styles.updatedRow}>
           <Ionicons name="radio-outline" size={13} color={colors.textTertiary} />
           <Text style={styles.updatedText}>Updated {relativeTime(bin.lastUpdated).toLowerCase()}</Text>
@@ -149,6 +147,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 4,
     marginLeft: 2,
+  },
+  stateLabel: {
+    color: colors.text,
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   footer: {
     flexDirection: 'row',

@@ -39,7 +39,6 @@ const iosAlarmPattern = [0, 700, 250, 700, 250, 1_100];
 /** Starts a repeating, in-app paging alarm plus strong device vibration. */
 export async function triggerAlarmFeedback(
   binName: string,
-  fillPercent: number,
 ): Promise<void> {
   const requestId = ++alarmRequestId;
 
@@ -57,7 +56,7 @@ export async function triggerAlarmFeedback(
           true,
           {
             title: `${binName} is full`,
-            artist: `EcoSort collection alarm • ${fillPercent}%`,
+            artist: 'EcoSort collection alarm • FULL',
           },
           {
             isLiveStream: true,

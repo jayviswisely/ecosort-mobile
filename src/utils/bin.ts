@@ -1,5 +1,5 @@
 import { colors } from '@/theme';
-import type { BinCategory, BinStatus } from '@/types';
+import type { BinCategory, BinStatus, FillState } from '@/types';
 
 export function calculateFillPercentage(
   emptyDepthCm: number,
@@ -14,15 +14,28 @@ export function calculateFillPercentage(
 
 export function getStatus(fillPercent: number, online = true): BinStatus {
   if (!online) return 'offline';
-  if (fillPercent >= 90) return 'full';
-  if (fillPercent >= 75) return 'almost_full';
-  return 'normal';
+  if (fillPercent >= 75) return 'full';
+  if (fillPercent <= 5) return 'empty';
+  return 'half-full';
+}
+
+export function getFillProgress(status: BinStatus): number {
+  return {
+    empty: 0,
+    'half-full': 50,
+    full: 100,
+    offline: 0,
+  }[status];
+}
+
+export function isFillState(value: unknown): value is FillState {
+  return value === 'empty' || value === 'half-full' || value === 'full';
 }
 
 export function getStatusLabel(status: BinStatus): string {
   return {
-    normal: 'Normal',
-    almost_full: 'Almost Full',
+    empty: 'Empty',
+    'half-full': 'Half-full',
     full: 'Full',
     offline: 'Sensor Offline',
   }[status];
@@ -30,8 +43,8 @@ export function getStatusLabel(status: BinStatus): string {
 
 export function getStatusColor(status: BinStatus): string {
   return {
-    normal: colors.normal,
-    almost_full: colors.warning,
+    empty: colors.normal,
+    'half-full': colors.warning,
     full: colors.danger,
     offline: colors.offline,
   }[status];
@@ -39,8 +52,8 @@ export function getStatusColor(status: BinStatus): string {
 
 export function getStatusSoftColor(status: BinStatus): string {
   return {
-    normal: colors.normalSoft,
-    almost_full: colors.warningSoft,
+    empty: colors.normalSoft,
+    'half-full': colors.warningSoft,
     full: colors.dangerSoft,
     offline: colors.offlineSoft,
   }[status];

@@ -79,11 +79,11 @@ export default function AlertsScreen() {
         <View style={styles.thresholdCard}>
           <View style={styles.thresholdHeading}>
             <Ionicons name="analytics-outline" size={19} color={colors.primary} />
-            <Text style={styles.thresholdTitle}>Alert thresholds</Text>
+            <Text style={styles.thresholdTitle}>Fill states</Text>
           </View>
-          <ThresholdRow color={colors.normal} label="Normal" range="0–74%" />
-          <ThresholdRow color={colors.warning} label="Almost Full" range="75–89%" />
-          <ThresholdRow color={colors.danger} label="Full" range="90–100%" isLast />
+          <ThresholdRow color={colors.normal} label="Empty" range="No collection needed" />
+          <ThresholdRow color={colors.warning} label="Half-full" range="Monitor" />
+          <ThresholdRow color={colors.danger} label="Full" range="Alarm staff" isLast />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -21,6 +21,7 @@ import {
 } from '@/store/useAutopilotStore';
 import { useEcoStore } from '@/store/useEcoStore';
 import { colors, radii, shadows } from '@/theme';
+import { getFillProgress } from '@/utils/bin';
 
 type RiskLevel = MapRisk;
 
@@ -78,7 +79,7 @@ export default function CommandScreen() {
   const completeNextStop = useAutopilotStore((state) => state.completeNextStop);
   const resetMission = useAutopilotStore((state) => state.resetMission);
 
-  const edgeFill = bins.length > 0 ? Math.max(...bins.map((bin) => bin.fillPercent)) : 82;
+  const edgeFill = bins.length > 0 ? Math.max(...bins.map((bin) => getFillProgress(bin.status))) : 50;
   const edgeOnline = bins.length > 0 && bins.every((bin) => bin.status !== 'offline');
 
   const stations = useMemo<StationView[]>(

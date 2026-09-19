@@ -5,7 +5,7 @@ import type {
   EdgeUpdate,
   SmartBin,
 } from '@/types';
-import { calculateFillPercentage, getStatus } from '@/utils/bin';
+import { calculateFillPercentage, getStatus, isFillState } from '@/utils/bin';
 
 type Listener = (update: EdgeUpdate) => void;
 type JsonRecord = Record<string, unknown>;
@@ -41,11 +41,14 @@ function mapBin(value: unknown): SmartBin {
   const emptyDepthCm = requiredNumber(value.empty_depth_cm, 'empty_depth_cm');
   const distanceCm = requiredNumber(value.distance_cm, 'distance_cm');
   const reportedFill = value.fill_percent;
-  const fillPercent =
+  const legacyFillPercent =
     typeof reportedFill === 'number' && Number.isFinite(reportedFill)
       ? Math.round(Math.min(100, Math.max(0, reportedFill)))
       : calculateFillPercentage(emptyDepthCm, distanceCm);
-  const sensorOnline = value.sensor_online === true;
+  const fillState = isFillState(value.fill_state)
+    ? value.fill_state
+    : getStatus(legacyFillPercent, true);
+  const fillOnline = value.fill_online === true || value.sensor_online === true;
   const now = new Date().toISOString();
 
   return {
@@ -55,10 +58,14 @@ function mapBin(value: unknown): SmartBin {
       value.name,
       `${category[0].toUpperCase()}${category.slice(1)} Bin`,
     ),
-    fillPercent,
     distanceCm,
     emptyDepthCm,
-    status: getStatus(fillPercent, sensorOnline),
+    status: fillOnline ? fillState : 'offline',
+    fillSource: typeof value.fill_source === 'string' ? value.fill_source : null,
+    fillConfidence:
+      typeof value.fill_confidence === 'number' && Number.isFinite(value.fill_confidence)
+        ? Math.min(1, Math.max(0, value.fill_confidence))
+        : null,
     lastUpdated: optionalString(value.last_updated, now),
     lastEmptied: optionalString(value.last_emptied, now),
     itemCountToday:

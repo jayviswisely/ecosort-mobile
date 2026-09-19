@@ -12,7 +12,9 @@ import {
   getCategoryColor,
   getCategoryIcon,
   getCategorySoftColor,
+  getFillProgress,
   getStatusColor,
+  getStatusLabel,
 } from '@/utils/bin';
 import { friendlyDateTime, relativeTime } from '@/utils/date';
 
@@ -91,17 +93,14 @@ export default function BinDetailScreen() {
               />
             </View>
             <Text style={styles.heroLabel}>CURRENT FILL</Text>
-            <View style={styles.heroPercentRow}>
-              <Text style={styles.heroPercent}>{bin.fillPercent}</Text>
-              <Text style={styles.heroPercentSymbol}>%</Text>
-            </View>
+            <Text style={styles.heroState}>{getStatusLabel(bin.status)}</Text>
             <StatusBadge status={bin.status} />
             <Text style={styles.heroUpdated}>Updated {relativeTime(bin.lastUpdated).toLowerCase()}</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Sensor readings</Text>
+          <Text style={styles.sectionTitle}>Fill monitoring</Text>
           <View style={styles.sensorOnline}>
             <View
               style={[
@@ -117,18 +116,18 @@ export default function BinDetailScreen() {
         <View style={styles.metricsGrid}>
           <MetricCard
             icon="resize-outline"
-            label="Current distance"
-            value={`${bin.distanceCm.toFixed(1)} cm`}
+            label="Detection source"
+            value={bin.fillSource ? bin.fillSource.replace(/_/g, ' ') : 'Unavailable'}
           />
           <MetricCard
             icon="scan-outline"
-            label="Empty-bin depth"
-            value={`${bin.emptyDepthCm} cm`}
+            label="Fill state"
+            value={getStatusLabel(bin.status)}
           />
           <MetricCard
             icon="analytics-outline"
-            label="Estimated fill"
-            value={`${bin.fillPercent}%`}
+            label="Confidence"
+            value={confidenceLabel(bin.fillConfidence)}
           />
           <MetricCard
             icon="cube-outline"
@@ -180,15 +179,16 @@ export default function BinDetailScreen() {
 }
 
 function VerticalFill({ bin }: { bin: SmartBin }) {
-  const animated = useRef(new Animated.Value(bin.fillPercent)).current;
+  const target = getFillProgress(bin.status);
+  const animated = useRef(new Animated.Value(target)).current;
 
   useEffect(() => {
     Animated.timing(animated, {
-      toValue: bin.fillPercent,
+      toValue: target,
       duration: 550,
       useNativeDriver: false,
     }).start();
-  }, [animated, bin.fillPercent]);
+  }, [animated, target]);
 
   const height = animated.interpolate({
     inputRange: [0, 100],
@@ -212,6 +212,13 @@ function VerticalFill({ bin }: { bin: SmartBin }) {
       <View style={styles.tankTop} />
     </View>
   );
+}
+
+function confidenceLabel(confidence: number | null): string {
+  if (confidence === null) return 'Not reported';
+  if (confidence >= 0.85) return 'High';
+  if (confidence >= 0.65) return 'Medium';
+  return 'Low';
 }
 
 function MetricCard({
@@ -329,6 +336,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 6,
     marginLeft: 2,
+  },
+  heroState: {
+    color: colors.text,
+    fontSize: 34,
+    lineHeight: 42,
+    fontWeight: '900',
+    letterSpacing: -1.2,
+    marginVertical: 3,
   },
   heroUpdated: {
     color: colors.textTertiary,

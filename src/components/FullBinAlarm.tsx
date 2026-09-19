@@ -70,7 +70,7 @@ export function FullBinAlarm() {
 
     if (isBackgrounded) {
       stopAlarmFeedback();
-      void showFullBinNotificationAsync(alert.id, bin.name, bin.fillPercent).then(
+      void showFullBinNotificationAsync(alert.id, bin.name).then(
         (notificationShown) => {
           if (cancelled) {
             if (notificationShown) {
@@ -82,7 +82,7 @@ export function FullBinAlarm() {
           // Android Expo Go cannot load expo-notifications. Keep the native
           // looping pager alive as a best-effort fallback while backgrounded.
           if (!notificationShown) {
-            void triggerAlarmFeedback(bin.name, bin.fillPercent);
+            void triggerAlarmFeedback(bin.name);
           }
         },
       );
@@ -93,10 +93,10 @@ export function FullBinAlarm() {
     }
 
     void dismissFullBinNotificationAsync(alert.id);
-    void triggerAlarmFeedback(bin.name, bin.fillPercent);
+    void triggerAlarmFeedback(bin.name);
     try {
       AccessibilityInfo.announceForAccessibility(
-        `Urgent EcoSort alarm. ${bin.name} is ${bin.fillPercent} percent full and needs collection.`,
+        `Urgent EcoSort alarm. ${bin.name} is full and needs collection.`,
       );
     } catch (error) {
       console.warn('Unable to announce the EcoSort alarm.', error);
@@ -106,7 +106,7 @@ export function FullBinAlarm() {
       cancelled = true;
       stopAlarmFeedback();
     };
-  }, [alert?.id, isBackgrounded, bin?.fillPercent, bin?.name]);
+  }, [alert?.id, isBackgrounded, bin?.name]);
 
   if (!alert || !bin) return null;
 
@@ -140,7 +140,7 @@ export function FullBinAlarm() {
           </View>
 
           <Text style={styles.title}>{bin.name} is full</Text>
-          <Text style={styles.percent}>{bin.fillPercent}% capacity</Text>
+          <Text style={styles.percent}>FULL</Text>
           <Text style={styles.description}>
             This bin needs immediate attention. Acknowledge the alarm, collect
             the waste, then mark the bin as emptied.
