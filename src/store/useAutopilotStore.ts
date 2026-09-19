@@ -14,7 +14,26 @@ interface AutopilotState {
   resetMission: () => void;
 }
 
-export const AUTOPILOT_ROUTE = ['north-loop', 'big-city', 'edge-lab', 'nthu'] as const;
+export const AUTOPILOT_ROUTE_GROUPS = [
+  {
+    id: 'central',
+    code: 'C',
+    name: 'Central corridor crew',
+    zone: 'Central corridor',
+    color: '#176A3B',
+    stationIds: ['north-loop', 'big-city', 'edge-lab'],
+  },
+  {
+    id: 'east',
+    code: 'E',
+    name: 'East District crew',
+    zone: 'East District',
+    color: '#3568A8',
+    stationIds: ['nthu'],
+  },
+] as const;
+
+export const AUTOPILOT_ROUTE = AUTOPILOT_ROUTE_GROUPS.flatMap((group) => group.stationIds);
 
 export const useAutopilotStore = create<AutopilotState>((set) => ({
   forecast: 'now',

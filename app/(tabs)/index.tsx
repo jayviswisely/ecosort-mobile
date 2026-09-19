@@ -15,6 +15,7 @@ import { AppText as Text } from '@/components/AppText';
 import { AUTOPILOT_STATIONS, type AutopilotStation } from '@/data/autopilotData';
 import {
   AUTOPILOT_ROUTE,
+  AUTOPILOT_ROUTE_GROUPS,
   type ForecastWindow,
   useAutopilotStore,
 } from '@/store/useAutopilotStore';
@@ -184,7 +185,7 @@ export default function CommandScreen() {
             stations={stations}
             selectedStationId={selectedStationId}
             routeActive={routeActive}
-            routeStationIds={AUTOPILOT_ROUTE}
+            routeGroups={AUTOPILOT_ROUTE_GROUPS}
             onSelectStation={selectStation}
           />
 
@@ -224,7 +225,7 @@ export default function CommandScreen() {
           {routeActive && (
             <View style={styles.routeReadyBadge}>
               <Ionicons name="navigate-outline" size={13} color={colors.primary} />
-              <Text style={styles.routeReadyText}>ROUTE READY</Text>
+              <Text style={styles.routeReadyText}>2 CREWS ACTIVE</Text>
             </View>
           )}
         </View>
@@ -236,24 +237,24 @@ export default function CommandScreen() {
             </View>
             <Text style={styles.missionTitle}>Prevent the next overflow</Text>
             <Text style={styles.missionCopy}>
-              Autopilot combines live fill rates with the two-hour forecast, prioritizes urgent
-              stations, and creates the shortest demo collection sequence.
+              Autopilot partitions urgent stations by service district, then dispatches the
+              nearest crew without sending trucks across Hsinchu unnecessarily.
             </Text>
             <View style={styles.aiDecisionRow}>
-              <DecisionPill icon="timer-outline" text="4 urgent stops" />
-              <DecisionPill icon="leaf-outline" text="6.2 km avoided" />
+              <DecisionPill icon="people-outline" text="2 district crews" />
+              <DecisionPill icon="leaf-outline" text="4.8 km avoided" />
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Generate optimized collection route"
+              accessibilityLabel="Generate district collection plan"
               onPress={optimizeRoute}
               style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
             >
               <Ionicons name="sparkles" size={18} color={colors.white} />
-              <Text style={styles.primaryButtonText}>Generate smart route</Text>
+              <Text style={styles.primaryButtonText}>Build district dispatch plan</Text>
               <Ionicons name="arrow-forward" size={18} color={colors.white} />
             </Pressable>
-            <Text style={styles.estimateDisclaimer}>Route and impact values are demo estimates.</Text>
+            <Text style={styles.estimateDisclaimer}>District assignments and impact values are demo estimates.</Text>
           </View>
         ) : (
           <View style={styles.missionCard}>
@@ -263,9 +264,9 @@ export default function CommandScreen() {
               <>
                 <View style={styles.missionProgressRow}>
                   <View>
-                    <Text style={styles.missionProgressLabel}>ACTIVE COLLECTION</Text>
+                    <Text style={styles.missionProgressLabel}>PARALLEL DISTRICT DISPATCH</Text>
                     <Text style={styles.missionProgressTitle}>
-                      Stop {completedStationIds.length + 1} of {AUTOPILOT_ROUTE.length}
+                      {completedStationIds.length}/{AUTOPILOT_ROUTE.length} pickups verified
                     </Text>
                   </View>
                   <View style={styles.etaBadge}>
@@ -275,57 +276,70 @@ export default function CommandScreen() {
                 </View>
 
                 <View style={styles.routeTimeline}>
-                  {AUTOPILOT_ROUTE.map((stationId, index) => {
-                    const station = stations.find((item) => item.id === stationId);
-                    if (!station) return null;
-                    const completed = completedStationIds.includes(stationId);
-                    const active = stationId === nextStopId;
+                  {AUTOPILOT_ROUTE_GROUPS.map((group) => (
+                    <View key={group.id} style={styles.crewGroup}>
+                      <View style={styles.crewHeader}>
+                        <View style={[styles.crewDot, { backgroundColor: group.color }]} />
+                        <Text style={styles.crewName}>{group.name}</Text>
+                        <Text style={styles.crewMeta}>
+                          {group.stationIds.length} {group.stationIds.length === 1 ? 'pickup' : 'local stops'}
+                        </Text>
+                      </View>
+                      {group.stationIds.map((stationId, index) => {
+                        const station = stations.find((item) => item.id === stationId);
+                        if (!station) return null;
+                        const completed = completedStationIds.includes(stationId);
+                        const active = stationId === nextStopId;
 
-                    return (
-                      <Pressable
-                        key={stationId}
-                        onPress={() => selectStation(stationId)}
-                        style={styles.routeStop}
-                      >
-                        <View style={styles.timelineRail}>
-                          <View
-                            style={[
-                              styles.timelineNode,
-                              completed && styles.timelineNodeComplete,
-                              active && styles.timelineNodeActive,
-                            ]}
+                        return (
+                          <Pressable
+                            key={stationId}
+                            onPress={() => selectStation(stationId)}
+                            style={styles.routeStop}
                           >
-                            {completed ? (
-                              <Ionicons name="checkmark" size={12} color={colors.white} />
-                            ) : (
-                              <Text style={[styles.timelineNumber, active && styles.timelineNumberActive]}>
-                                {index + 1}
+                            <View style={styles.timelineRail}>
+                              <View
+                                style={[
+                                  styles.timelineNode,
+                                  { borderColor: group.color },
+                                  completed && styles.timelineNodeComplete,
+                                  active && styles.timelineNodeActive,
+                                ]}
+                              >
+                                {completed ? (
+                                  <Ionicons name="checkmark" size={12} color={colors.white} />
+                                ) : (
+                                  <Text style={[styles.timelineNumber, active && styles.timelineNumberActive]}>
+                                    {group.code}{index + 1}
+                                  </Text>
+                                )}
+                              </View>
+                              {index < group.stationIds.length - 1 && (
+                                <View
+                                  style={[
+                                    styles.timelineLine,
+                                    { backgroundColor: `${group.color}40` },
+                                    completed && styles.timelineLineComplete,
+                                  ]}
+                                />
+                              )}
+                            </View>
+                            <View style={styles.routeStopCopy}>
+                              <Text style={[styles.routeStopName, completed && styles.routeStopDone]}>
+                                {station.name}
                               </Text>
-                            )}
-                          </View>
-                          {index < AUTOPILOT_ROUTE.length - 1 && (
-                            <View
-                              style={[
-                                styles.timelineLine,
-                                completed && styles.timelineLineComplete,
-                              ]}
-                            />
-                          )}
-                        </View>
-                        <View style={styles.routeStopCopy}>
-                          <Text style={[styles.routeStopName, completed && styles.routeStopDone]}>
-                            {station.name}
-                          </Text>
-                          <Text style={styles.routeStopMeta}>
-                            {completed
-                              ? 'Sensor verified · 3% remaining'
-                              : `${station.currentFill}% projected · ${station.district} District`}
-                          </Text>
-                        </View>
-                        {active && <Text style={styles.nextLabel}>NEXT</Text>}
-                      </Pressable>
-                    );
-                  })}
+                              <Text style={styles.routeStopMeta}>
+                                {completed
+                                  ? 'Sensor verified · 3% remaining'
+                                  : `${station.currentFill}% projected · ${group.zone} service zone`}
+                              </Text>
+                            </View>
+                            {active && <Text style={styles.nextLabel}>NEXT EVENT</Text>}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
                 </View>
 
                 <Pressable
@@ -338,7 +352,7 @@ export default function CommandScreen() {
                     <Ionicons name="scan-outline" size={19} color="#A7F36B" />
                   </View>
                   <View style={styles.verifyCopy}>
-                    <Text style={styles.verifyTitle}>Verify pickup at {nextStop?.shortName}</Text>
+                    <Text style={styles.verifyTitle}>Verify next sensor event at {nextStop?.shortName}</Text>
                     <Text style={styles.verifySubtitle}>Simulate depth sensor returning to empty</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#A7F36B" />
@@ -553,8 +567,8 @@ function MissionComplete({ onReset }: { onReset: () => void }) {
       <Text style={styles.completeEyebrow}>CLOSED LOOP COMPLETE</Text>
       <Text style={styles.completeTitle}>Zero overflows. Mission verified.</Text>
       <Text style={styles.completeCopy}>
-        All four depth sensors reported an empty state. The collection mission closed
-        automatically without manual paperwork.
+        Both district crews completed their local assignments. All four depth sensors reported
+        empty, closing the mission without a cross-city truck transfer.
       </Text>
       <Pressable onPress={onReset} style={({ pressed }) => [styles.resetButton, pressed && styles.pressed]}>
         <Ionicons name="refresh" size={16} color={colors.primary} />
@@ -573,9 +587,9 @@ function ImpactPanel({
   completed: number;
   complete: boolean;
 }) {
-  const distance = active ? (6.2 + completed * 0.3).toFixed(1) : '—';
-  const minutes = active ? `${24 + completed * 3}` : '—';
-  const carbon = active ? (1.3 + completed * 0.1).toFixed(1) : '—';
+  const distance = active ? (4.8 + completed * 0.2).toFixed(1) : '—';
+  const minutes = active ? `${18 + completed * 2}` : '—';
+  const carbon = active ? (1.0 + completed * 0.1).toFixed(1) : '—';
 
   return (
     <View style={styles.impactCard}>
@@ -598,7 +612,7 @@ function ImpactPanel({
       <View style={styles.impactFooter}>
         <Ionicons name="shield-checkmark-outline" size={14} color="#A7F36B" />
         <Text style={styles.impactFooterText}>
-          {active ? `${completed}/4 pickups sensor-verified` : 'Generate a route to calculate impact'}
+          {active ? `${completed}/${AUTOPILOT_ROUTE.length} pickups verified across 2 district crews` : 'Generate a dispatch plan to calculate impact'}
         </Text>
       </View>
     </View>
@@ -814,6 +828,11 @@ const styles = StyleSheet.create({
   etaBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, backgroundColor: colors.warningSoft },
   etaBadgeText: { color: colors.warning, fontSize: 9, fontWeight: '900' },
   routeTimeline: { marginBottom: 5 },
+  crewGroup: { marginBottom: 10 },
+  crewHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
+  crewDot: { width: 8, height: 8, borderRadius: 4 },
+  crewName: { flex: 1, color: colors.text, fontSize: 11, fontWeight: '900' },
+  crewMeta: { color: colors.textTertiary, fontSize: 8, fontWeight: '700' },
   routeStop: { minHeight: 58, flexDirection: 'row', alignItems: 'flex-start' },
   timelineRail: { width: 31, alignItems: 'center' },
   timelineNode: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E5EBE7', borderWidth: 1, borderColor: '#CBD6CE' },

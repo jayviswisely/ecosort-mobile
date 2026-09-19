@@ -81,7 +81,7 @@ export default function HsinchuCityMap(props: HsinchuCityMapProps) {
     if (!L || !map || !overlays) return;
 
     drawOperationalLayers(L, map, overlays, props);
-  }, [props.routeActive, props.routeStationIds, props.selectedStationId, props.stations]);
+  }, [props.routeActive, props.routeGroups, props.selectedStationId, props.stations]);
 
   return (
     <View style={styles.wrap}>
@@ -152,42 +152,48 @@ function drawOperationalLayers(
   overlays.clearLayers();
 
   const stationById = new Map(state.stations.map((station) => [station.id, station]));
-  const routeStations = state.routeStationIds
-    .map((id) => stationById.get(id))
-    .filter((station): station is MapStation => Boolean(station));
 
-  if (state.routeActive && routeStations.length > 1) {
-    const routePoints = routeStations.map(
-      (station) => [station.latitude, station.longitude] as Leaflet.LatLngTuple,
-    );
+  if (state.routeActive) {
+    state.routeGroups.forEach((group) => {
+      const routePoints = group.stationIds
+        .map((id) => stationById.get(id))
+        .filter((station): station is MapStation => Boolean(station))
+        .map((station) => [station.latitude, station.longitude] as Leaflet.LatLngTuple);
 
-    L.polyline(routePoints, {
-      color: '#FFFFFF',
-      lineCap: 'round',
-      lineJoin: 'round',
-      opacity: 0.96,
-      weight: 10,
-    }).addTo(overlays);
+      if (routePoints.length < 2) return;
 
-    L.polyline(routePoints, {
-      color: '#176A3B',
-      dashArray: '10 8',
-      lineCap: 'round',
-      lineJoin: 'round',
-      opacity: 1,
-      weight: 5,
-    })
-      .bindTooltip('Optimized low-emission collection route', {
-        direction: 'center',
-        sticky: true,
+      L.polyline(routePoints, {
+        color: '#FFFFFF',
+        lineCap: 'round',
+        lineJoin: 'round',
+        opacity: 0.96,
+        weight: 10,
+      }).addTo(overlays);
+
+      L.polyline(routePoints, {
+        color: group.color,
+        dashArray: '10 8',
+        lineCap: 'round',
+        lineJoin: 'round',
+        opacity: 1,
+        weight: 5,
       })
-      .addTo(overlays);
+        .bindTooltip(`${group.name} · district-local route`, {
+          direction: 'center',
+          sticky: true,
+        })
+        .addTo(overlays);
+    });
   }
 
   state.stations.forEach((station) => {
     const visual = MAP_RISK_COLORS[station.currentRisk];
     const selected = station.id === state.selectedStationId;
-    const routeNumber = state.routeActive ? state.routeStationIds.indexOf(station.id) + 1 : 0;
+    const routeGroup = state.routeGroups.find((group) => group.stationIds.includes(station.id));
+    const routeIndex = routeGroup?.stationIds.indexOf(station.id) ?? -1;
+    const routeLabel = state.routeActive && routeGroup && routeIndex >= 0
+      ? `${routeGroup.code}${routeIndex + 1}`
+      : '';
 
     if (station.currentRisk === 'critical' || station.currentRisk === 'watch') {
       const isCritical = station.currentRisk === 'critical';
@@ -203,7 +209,7 @@ function drawOperationalLayers(
 
     const icon = L.divIcon({
       className: 'ecosort-leaflet-marker',
-      html: buildMarkerHtml(station, visual, selected, routeNumber),
+      html: buildMarkerHtml(station, visual, selected, routeLabel),
       iconAnchor: [18, 29],
       iconSize: [36, 56],
       popupAnchor: [0, -27],
@@ -217,7 +223,7 @@ function drawOperationalLayers(
       title: station.name,
       // Keep the selected marker below neighboring pins while its popup is open,
       // so dense downtown stations remain individually tappable.
-      zIndexOffset: selected ? -500 : routeNumber > 0 ? 500 : 0,
+      zIndexOffset: selected ? -500 : routeLabel ? 500 : 0,
     })
       .bindPopup(buildPopupHtml(station), {
         className: 'ecosort-map-popup',
@@ -240,16 +246,16 @@ function buildMarkerHtml(
   station: MapStation,
   visual: { color: string; dark: string },
   selected: boolean,
-  routeNumber: number,
+  routeLabel: string,
 ) {
-  const content = routeNumber > 0 ? routeNumber : station.currentFill;
+  const content = routeLabel || station.currentFill;
   const ring = selected ? '#FFFFFF' : visual.color;
   const scale = selected ? 1.13 : 1;
 
   return `
     <div style="display:flex;flex-direction:column;align-items:center;width:36px;transform:scale(${scale});transform-origin:18px 28px;filter:drop-shadow(0 4px 6px rgba(16,39,27,.28));">
       <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:4px solid ${ring};border-radius:50% 50% 50% 4px;background:${visual.dark};color:${visual.color};font:800 10px/1 Manrope_800ExtraBold,system-ui;transform:rotate(-45deg);">
-        <span style="transform:rotate(45deg);">${content}${routeNumber > 0 ? '' : '%'}</span>
+        <span style="transform:rotate(45deg);">${content}${routeLabel ? '' : '%'}</span>
       </div>
       <div style="pointer-events:none;margin-top:2px;padding:3px 6px;border-radius:6px;background:${selected ? '#FFFFFF' : 'rgba(16,39,27,.92)'};color:${selected ? '#164E31' : '#FFFFFF'};font:700 9px/1.1 Manrope_700Bold,system-ui;white-space:nowrap;">${station.shortName}</div>
     </div>`;

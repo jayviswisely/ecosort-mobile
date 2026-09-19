@@ -11,11 +11,20 @@ export interface MapStation {
   edgeConnected?: boolean;
 }
 
+export interface MapRouteGroup {
+  id: string;
+  code: string;
+  name: string;
+  zone: string;
+  color: string;
+  stationIds: readonly string[];
+}
+
 export interface HsinchuCityMapProps {
   stations: MapStation[];
   selectedStationId: string;
   routeActive: boolean;
-  routeStationIds: readonly string[];
+  routeGroups: readonly MapRouteGroup[];
   onSelectStation: (stationId: string) => void;
 }
 

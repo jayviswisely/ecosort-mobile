@@ -37,14 +37,9 @@ export default function HsinchuCityMap({
   stations,
   selectedStationId,
   routeActive,
-  routeStationIds,
+  routeGroups,
   onSelectStation,
 }: HsinchuCityMapProps) {
-  const routeCoordinates = routeStationIds
-    .map((id) => stations.find((station) => station.id === id))
-    .filter((station): station is NonNullable<typeof station> => Boolean(station))
-    .map(({ latitude, longitude }) => ({ latitude, longitude }));
-
   return (
     <View style={styles.wrap}>
       <MapView
@@ -72,20 +67,33 @@ export default function HsinchuCityMap({
             />
           ))}
 
-        {routeActive && routeCoordinates.length > 1 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#246B43"
-            strokeWidth={5}
-            lineDashPattern={[2, 1]}
-            lineCap="round"
-            lineJoin="round"
-          />
-        )}
+        {routeActive && routeGroups.map((group) => {
+          const coordinates = group.stationIds
+            .map((id) => stations.find((station) => station.id === id))
+            .filter((station): station is NonNullable<typeof station> => Boolean(station))
+            .map(({ latitude, longitude }) => ({ latitude, longitude }));
+
+          if (coordinates.length < 2) return null;
+          return (
+            <Polyline
+              key={group.id}
+              coordinates={coordinates}
+              strokeColor={group.color}
+              strokeWidth={5}
+              lineDashPattern={[2, 1]}
+              lineCap="round"
+              lineJoin="round"
+            />
+          );
+        })}
 
         {stations.map((station) => {
           const selected = station.id === selectedStationId;
-          const routeNumber = routeActive ? routeStationIds.indexOf(station.id) + 1 : 0;
+          const routeGroup = routeGroups.find((group) => group.stationIds.includes(station.id));
+          const routeIndex = routeGroup?.stationIds.indexOf(station.id) ?? -1;
+          const routeLabel = routeActive && routeGroup && routeIndex >= 0
+            ? `${routeGroup.code}${routeIndex + 1}`
+            : '';
           return (
             <Marker
               key={station.id}
@@ -98,7 +106,7 @@ export default function HsinchuCityMap({
                 label={station.shortName}
                 fill={station.currentFill}
                 risk={station.currentRisk}
-                routeNumber={routeNumber}
+                routeLabel={routeLabel}
                 selected={selected}
               />
             </Marker>
@@ -125,13 +133,13 @@ function NativeMarker({
   label,
   fill,
   risk,
-  routeNumber,
+  routeLabel,
   selected,
 }: {
   label: string;
   fill: number;
   risk: MapRisk;
-  routeNumber: number;
+  routeLabel: string;
   selected: boolean;
 }) {
   const visual = MAP_RISK_COLORS[risk];
@@ -144,8 +152,8 @@ function NativeMarker({
           selected && styles.pinSelected,
         ]}
       >
-        {routeNumber > 0 ? (
-          <Text style={[styles.routeNumber, { color: visual.color }]}>{routeNumber}</Text>
+        {routeLabel ? (
+          <Text style={[styles.routeNumber, { color: visual.color }]}>{routeLabel}</Text>
         ) : (
           <Text style={[styles.fillText, { color: visual.color }]}>{fill}</Text>
         )}

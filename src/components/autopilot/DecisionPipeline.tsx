@@ -38,9 +38,9 @@ const stages = [
   },
   {
     icon: 'navigate-outline' as const,
-    label: 'Route optimization',
-    detail: 'Urgency × distance × capacity',
-    metric: '6.2 km',
+    label: 'District dispatch',
+    detail: 'Service zone × urgency × crew proximity',
+    metric: '2 crews',
   },
   {
     icon: 'shield-checkmark-outline' as const,
@@ -112,8 +112,9 @@ export function DecisionPipeline({
         <View style={styles.explainCopy}>
           <Text style={styles.explainLabel}>WHY THIS DECISION</Text>
           <Text style={styles.explainText}>
-            Beimen ranks first: 96% current fill, the shortest overflow window, and a collection
-            route that connects the next three forecast risks without backtracking.
+            Beimen is assigned to the Central corridor crew with Big City and Hsinchu Station.
+            NTHU is handled independently by the East District crew, avoiding an unrealistic
+            cross-city leg.
           </Text>
         </View>
       </View>
